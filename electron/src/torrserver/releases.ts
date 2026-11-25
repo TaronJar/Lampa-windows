@@ -14,9 +14,10 @@ export interface GstRelease {
 type GitHubAsset = { name: string; browser_download_url: string };
 type GitHubRelease = { tag_name: string; name: string; published_at: string; assets: GitHubAsset[] };
 
-function assertGitHubHttps(url: string): void {
+function assertGitHubHttps(url: string, allowRedirectHosts = false): void {
     const parsed = new URL(url);
-    if (parsed.protocol !== 'https:' || parsed.hostname !== 'github.com') {
+    const allowedHosts = ['github.com', 'release-assets.githubusercontent.com', 'objects.githubusercontent.com'];
+    if (parsed.protocol !== 'https:' || !(allowRedirectHosts ? allowedHosts : ['github.com']).includes(parsed.hostname)) {
         throw new Error('Rejected non-GitHub release download URL');
     }
 }
@@ -49,6 +50,7 @@ export async function findLatestWindowsGstRelease(): Promise<GstRelease> {
             headers: { 'User-Agent': 'Lampa-Windows-GST-Manager' }
         });
         if (!checksumResponse.ok) continue;
+        if (checksumResponse.url) assertGitHubHttps(checksumResponse.url, true);
         const checksum = readChecksum(await checksumResponse.text(), GST_ASSET);
         if (!checksum) continue;
 
