@@ -1,5 +1,7 @@
 import { mkdir, access, stat, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
+import { isIP } from 'node:net';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { installFfmpeg, type FfmpegInstallResult } from './installer';
 
@@ -62,14 +64,17 @@ export class FfmpegPreviewManager {
     private validateUrl(raw: unknown): string {
         if (typeof raw !== 'string' || raw.length > 4096) throw new Error('Invalid preview URL.');
         const url = new URL(raw);
-        const validHost = ['127.0.0.1', 'localhost'].includes(url.hostname);
+        const host = url.hostname.toLowerCase();
+        const localName = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+        const ipType = isIP(host);
+        const privateIPv4 = ipType === 4 && (host.startsWith('10.') || host.startsWith('192.168.') || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || host.startsWith('127.'));
+        const privateIPv6 = ipType === 6 && (host === '::1' || host.startsWith('fc') || host.startsWith('fd') || host.startsWith('fe80:'));
         const validPort = ['8090', '6878'].includes(url.port);
-        if (url.protocol !== 'http:' || !validHost || !validPort || url.username || url.password) throw new Error('Preview source must be a local TorrServer HTTP stream.');
+        if (url.protocol !== 'http:' || !(localName || privateIPv4 || privateIPv6) || !validPort || url.username || url.password) throw new Error('Preview source must be a private-network TorrServer HTTP stream.');
         return url.href;
     }
 
     private cacheKey(url: string, seconds: number): string {
-        const { createHash } = require('node:crypto') as typeof import('node:crypto');
         return createHash('sha256').update(url).update('|').update(String(Math.floor(seconds))).digest('hex');
     }
 
