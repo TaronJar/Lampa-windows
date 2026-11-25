@@ -111,6 +111,7 @@ import ContentRows from './core/content_rows'
 import Emit from './utils/emit'
 import Router from './core/router'
 import Timer from './core/timer'
+import TorrserverGstManager from './interaction/torrserver_gst'
 
 import ServiceTorserver from './services/torrserver'
 import ServiceWatched from './services/watched'
@@ -917,6 +918,7 @@ if(!window.fitst_load){
     window.fitst_load = true
 
     initClass()
+    TorrserverGstManager.init()
     
     if(navigator.userAgent.toLowerCase().indexOf('lampa_client') > -1){
         function checkReady(){
