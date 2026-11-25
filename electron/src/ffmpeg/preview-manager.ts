@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { isIP } from 'node:net';
 import { spawn, type ChildProcess } from 'node:child_process';
-import { installFfmpeg, type FfmpegInstallResult } from './installer';
+import { installFfmpeg, type FfmpegInstallResult, type FfmpegProgress } from './installer';
 
 const MAX_CACHE_FILES = 1200;
 const PREVIEW_TIMEOUT_MS = 18000;
@@ -34,7 +34,7 @@ export class FfmpegPreviewManager {
         });
         return { installed: hasFfmpeg && hasFfprobe, ffmpeg: hasFfmpeg, ffprobe: hasFfprobe, version };
     }
-    async install(): Promise<FfmpegInstallResult> { if (this.installTask) return this.installTask; this.installTask = installFfmpeg(this.userDataPath); try { return await this.installTask; } finally { this.installTask = null; } }
+    async install(onProgress?: (progress: FfmpegProgress) => void): Promise<FfmpegInstallResult> { if (this.installTask) return this.installTask; this.installTask = installFfmpeg(this.userDataPath, onProgress); try { return await this.installTask; } finally { this.installTask = null; } }
     async preview(rawUrl: unknown, rawSeconds: unknown): Promise<{ path?: string; cached: boolean }> {
         const url = this.validateUrl(rawUrl); const seconds = Math.max(0, Math.min(24 * 60 * 60, Number(rawSeconds))); if (!Number.isFinite(seconds)) throw new Error('Invalid preview timestamp.');
         const key = this.cacheKey(url, seconds); await mkdir(this.cacheDir, { recursive: true }); const cachedPath = join(this.cacheDir, key + '.jpg');
