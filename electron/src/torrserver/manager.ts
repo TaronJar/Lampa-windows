@@ -20,6 +20,7 @@ export interface GstManagerStatus {
 export class GstManager {
     private child: ChildProcess | null = null;
     private starting: Promise<GstManagerStatus> | null = null;
+    private installing = false;
 
     constructor(private readonly userDataPath: string) {}
 
@@ -33,9 +34,15 @@ export class GstManager {
     async findLatest(): Promise<GstRelease> { return findLatestWindowsGstRelease(); }
 
     async installLatest(): Promise<InstallResult> {
-        if (this.isRunning()) throw new Error('Stop the managed TorrServer GST process before updating it.');
-        const release = await this.findLatest();
-        return installVerifiedRelease(release, this.installDirectory);
+        if (this.isRunning() || this.starting) throw new Error('Stop the managed TorrServer GST process before updating it.');
+        if (this.installing) throw new Error('A TorrServer GST installation is already in progress.');
+        this.installing = true;
+        try {
+            const release = await this.findLatest();
+            return await installVerifiedRelease(release, this.installDirectory);
+        } finally {
+            this.installing = false;
+        }
     }
 
     async status(): Promise<GstManagerStatus> {
@@ -45,6 +52,7 @@ export class GstManager {
     }
 
     async start(): Promise<GstManagerStatus> {
+        if (this.installing) throw new Error('Wait for the TorrServer GST installation to finish before starting.');
         if (this.starting) return this.starting;
         if (this.isRunning()) return this.status();
         this.starting = this.startInternal();
