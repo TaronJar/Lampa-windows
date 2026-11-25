@@ -169,32 +169,8 @@ function addPluginParams(url){
 }
 
 function loadBlackList(call){
-    if(window.lampa_settings.disable_features.blacklist) return call([])
-    
-    let status = new Status(2)
-        status.onComplite = (res)=>{
-            call([].concat(res.cub, res.custom))
-        }
-
-    _network.silent(Utils.protocol() + Manifest.cub_domain + '/api/plugins/blacklist',(result)=>{
-        let list = result.map(a=>a.url)
-
-        Storage.set('plugins_blacklist', list)
-
-        status.append('cub', list)
-    },()=>{
-        status.append('cub', Storage.get('plugins_blacklist','[]'))
-    }, false, {
-        timeout: 1000 * 5
-    })
-
-    _network.silent('./plugins_black_list.json',(list)=>{
-        status.append('custom', list)
-    },()=>{
-        status.append('custom', [])
-    }, false, {
-        timeout: 1000 * 5
-    })
+    // Plugin blacklist disabled: allow all plugin sources
+    call([])
 }
 
 /**
@@ -257,24 +233,9 @@ function task(call){
             
             console.log('Plugins','load list:', puts)
 
-            black_list.push('lipp.xyz')
-            black_list.push('llpp.xyz')
-            black_list.push('scabrum.github.io')
-            black_list.push('tinyurl.com')
+            _blacklist = []
 
-            // Stupid people :(
-            black_list.push('t.me/')
-            black_list.push('4pda.')
-            black_list.push('teletype.in')
-            black_list.push('yotube.com')
-            
-            _blacklist = black_list
-
-            console.log('Plugins','black list:', black_list)
-
-            black_list.forEach(b=>{
-                puts = puts.filter(p=>p.toLowerCase().indexOf(b) == -1)
-            })
+            console.log('Plugins','black list disabled')
 
             console.log('Plugins','clear list:', puts)
 
