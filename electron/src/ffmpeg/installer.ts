@@ -75,6 +75,8 @@ export async function installFfmpeg(userDataPath: string): Promise<FfmpegInstall
     const staging = join(userDataPath, 'tools', `.ffmpeg-staging-${Date.now()}`);
     const archive = join(staging, 'ffmpeg.zip');
     const extracted = join(staging, 'extracted');
+    const backup = join(userDataPath, 'tools', `.ffmpeg-backup-${Date.now()}`);
+    let backedUp = false;
     await mkdir(extracted, { recursive: true });
     try {
         const release = await fetchJson(RELEASE_API);
@@ -94,9 +96,15 @@ export async function installFfmpeg(userDataPath: string): Promise<FfmpegInstall
         const { copyFile } = await import('node:fs/promises');
         await copyFile(ffmpeg, ffmpegTemp);
         await copyFile(ffprobe, ffprobeTemp);
-        await rm(base, { recursive: true, force: true });
         await mkdir(join(userDataPath, 'tools'), { recursive: true });
-        await rename(installTemp, base);
+        try { await rename(base, backup); backedUp = true; } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+        try {
+            await rename(installTemp, base);
+            if (backedUp) await rm(backup, { recursive: true, force: true });
+        } catch (error) {
+            if (backedUp) await rename(backup, base).catch(() => undefined);
+            throw error;
+        }
         return { ffmpegPath: join(base, 'ffmpeg.exe'), ffprobePath: join(base, 'ffprobe.exe'), version: String(release.tag_name || release.name || 'latest') };
     } finally {
         await rm(staging, { recursive: true, force: true }).catch(() => undefined);
