@@ -177,35 +177,8 @@ function addPluginParams(url){
 
 function loadBlackList(call){
     // Blacklist filtering disabled: allow plugin URLs
-    return call([])
-    if(window.lampa_settings.disable_features.blacklist) return call([])
-    
-    let status = new Status(2)
-        status.onComplite = (res)=>{
-            call([].concat(res.cub, res.custom))
-        }
-
-    _network.silent(Utils.protocol() + Manifest.cub_domain + '/api/plugins/blacklist',(result)=>{
-        let list = result.map(a=>a.url)
-
-        Storage.set('plugins_blacklist', list)
-
-        status.append('cub', list)
-    },()=>{
-        status.append('cub', Storage.get('plugins_blacklist','[]'))
-    }, false, {
-        timeout: 1000 * 5
-    })
-
-    _network.silent('./plugins_black_list.json',(list)=>{
-        status.append('custom', list)
-    },()=>{
-        status.append('custom', [])
-    }, false, {
-        timeout: 1000 * 5
-    })
+    call([])
 }
-
 /**
  * Загрузка всех плагинов
  */
