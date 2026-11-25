@@ -34,15 +34,49 @@ export class GstManager {
     async findLatest(): Promise<GstRelease> { return findLatestWindowsGstRelease(); }
 
     async installLatest(): Promise<InstallResult> {
-        if (this.isRunning() || this.starting) throw new Error('Stop the managed TorrServer GST process before updating it.');
-        if (this.installing) throw new Error('A TorrServer GST installation is already in progress.');
+        // If a start request is in progress, let it settle before deciding whether
+        // the server needs to be stopped for installation.
+        if (this.starting) await this.starting.catch(() => undefined);
+        if (this.installing) throw new Error('Установка TorrServer GST уже выполняется.');
         this.installing = true;
+
+        const wasRunning = this.isRunning();
+        let result: InstallResult | undefined;
+        let installError: unknown;
+        let restartError: unknown;
+
         try {
+            if (wasRunning) {
+                const stopResult = await this.stop();
+                if (!stopResult.stopped) throw new Error('Не удалось остановить TorrServer GST. Обновление отменено, файлы не изменены.');
+            }
+
             const release = await this.findLatest();
-            return await installVerifiedRelease(release, this.installDirectory);
+            result = await installVerifiedRelease(release, this.installDirectory);
+        } catch (error) {
+            installError = error;
         } finally {
             this.installing = false;
+            // Restore the previous runtime state even if installation fails.
+            if (wasRunning) {
+                try { await this.start(); }
+                catch (error) { restartError = error; }
+            }
         }
+
+        if (installError) {
+            if (restartError) {
+                const original = installError instanceof Error ? installError.message : String(installError);
+                const restart = restartError instanceof Error ? restartError.message : String(restartError);
+                throw new Error(`${original} Также не удалось повторно запустить GST: ${restart}`);
+            }
+            throw installError;
+        }
+        if (restartError) {
+            const restart = restartError instanceof Error ? restartError.message : String(restartError);
+            throw new Error(`GST обновлён, но не удалось снова запустить сервер: ${restart}`);
+        }
+        return result!;
     }
 
     async status(): Promise<GstManagerStatus> {
@@ -52,7 +86,7 @@ export class GstManager {
     }
 
     async start(): Promise<GstManagerStatus> {
-        if (this.installing) throw new Error('Wait for the TorrServer GST installation to finish before starting.');
+        if (this.installing) throw new Error('Дождитесь завершения установки TorrServer GST.');
         if (this.starting) return this.starting;
         if (this.isRunning()) return this.status();
         this.starting = this.startInternal();
@@ -60,11 +94,11 @@ export class GstManager {
     }
 
     private async startInternal(): Promise<GstManagerStatus> {
-        if (process.platform !== 'win32' || process.arch !== 'x64') throw new Error('Managed TorrServer GST runtime is supported on Windows x64 only.');
+        if (process.platform !== 'win32' || process.arch !== 'x64') throw new Error('Управляемый TorrServer GST поддерживается только в Windows x64.');
         await access(this.executablePath);
         await mkdir(this.dataDirectory, { recursive: true });
 
-        if (await this.isPortOccupied()) throw new Error(`Port ${this.port} is already in use. Existing processes were left untouched.`);
+        if (await this.isPortOccupied()) throw new Error(`Порт ${this.port} уже занят. Существующие процессы не затронуты.`);
 
         const child = spawn(this.executablePath, [
             '--port', String(this.port), '--ip', '127.0.0.1',
@@ -80,19 +114,17 @@ export class GstManager {
 
         const deadline = Date.now() + START_TIMEOUT_MS;
         while (Date.now() < deadline) {
-            if (launchState.error) throw new Error(`Unable to launch TorrServer GST: ${launchState.error.message}`);
+            if (launchState.error) throw new Error(`Не удалось запустить TorrServer GST: ${launchState.error.message}`);
             if (child.exitCode !== null || child.signalCode !== null) {
                 if (this.child === child) this.child = null;
-                throw new Error('TorrServer GST exited before becoming ready.');
+                throw new Error('TorrServer GST завершился до готовности.');
             }
             if (await this.checkGstHealth()) return this.status();
             await new Promise(resolve => setTimeout(resolve, 350));
         }
 
-        // Keep tracking the child until its exit event confirms it is gone.
-        // Clearing this reference immediately could orphan a process if kill() is delayed.
         if (this.child === child) child.kill();
-        throw new Error('TorrServer GST did not pass the GST health check in time.');
+        throw new Error('TorrServer GST не прошёл проверку готовности за отведённое время.');
     }
 
     async stop(): Promise<{ stopped: boolean }> {
@@ -129,7 +161,6 @@ export class GstManager {
             const body: unknown = await response.json();
             if (!body || typeof body !== 'object' || !('gstreamer' in body)) return false;
             const gst = (body as { gstreamer?: { found?: boolean; available?: boolean; works?: boolean } }).gstreamer;
-            // Accept only the embedded GStreamer runtime reporting a working state.
             return gst?.works === true;
         } catch { return false; }
     }
