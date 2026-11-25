@@ -43,7 +43,7 @@ function modify(){
     // Install the ByLampa plugin store by default
     const bylampa_store = 'https://bylampa.github.io/addon.js'
     if(!list.some(a=>(typeof a == 'string' ? a : a.url) == bylampa_store)){
-        list.push({url: bylampa_store, status: 1})
+        list.push({url: bylampa_store, name: 'ByLampa Store', author: 'ByLampa', descr: 'Магазин плагинов ByLampa', status: 1})
     }
 
     list = list.map(a=>{
