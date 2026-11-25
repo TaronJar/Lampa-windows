@@ -89,7 +89,9 @@ export class GstManager {
             await new Promise(resolve => setTimeout(resolve, 350));
         }
 
-        if (this.child === child) { child.kill(); this.child = null; }
+        // Keep tracking the child until its exit event confirms it is gone.
+        // Clearing this reference immediately could orphan a process if kill() is delayed.
+        if (this.child === child) child.kill();
         throw new Error('TorrServer GST did not pass the GST health check in time.');
     }
 
