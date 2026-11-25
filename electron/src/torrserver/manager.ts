@@ -1,4 +1,4 @@
-import { access, mkdir } from 'node:fs/promises';
+import { access, mkdir, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { findLatestWindowsGstRelease, type GstRelease } from './releases';
@@ -77,6 +77,27 @@ export class GstManager {
             throw new Error(`GST обновлён, но не удалось снова запустить сервер: ${restart}`);
         }
         return result!;
+    }
+
+    async diagnostics(): Promise<{ executablePath: string; installDirectory: string; installed: boolean; filesScanned: number; runtimeFiles: string[]; pluginFiles: string[]; missingExpected: string[] }> {
+        const runtimeNames = ['gst-discoverer-1.0.exe', 'gst-plugin-scanner.exe', 'libgstreamer-1.0-0.dll'];
+        const expectedPlugins = ['libgstapp.dll', 'libgstplayback.dll', 'libgstvideoconvertscale.dll', 'libgstcoreelements.dll', 'libgstlibav.dll', 'libgstisomp4.dll', 'libgstmatroska.dll', 'libgstopenh264.dll', 'libgstdav1d.dll', 'libgstx264.dll'];
+        const found = new Set<string>();
+        let filesScanned = 0;
+        const scan = async (dir: string): Promise<void> => {
+            let entries;
+            try { entries = await readdir(dir, { withFileTypes: true }); } catch { return; }
+            for (const entry of entries) {
+                const full = join(dir, entry.name);
+                if (entry.isDirectory()) await scan(full);
+                else { filesScanned++; found.add(entry.name.toLowerCase()); }
+            }
+        };
+        await scan(this.installDirectory);
+        const runtimeFiles = runtimeNames.filter(name => found.has(name.toLowerCase()));
+        const pluginFiles = expectedPlugins.filter(name => found.has(name.toLowerCase()));
+        const missingExpected = expectedPlugins.filter(name => !found.has(name.toLowerCase()));
+        return { executablePath: this.executablePath, installDirectory: this.installDirectory, installed: found.has('torrserver-gst-windows-amd64.exe'), filesScanned, runtimeFiles, pluginFiles, missingExpected };
     }
 
     async status(): Promise<GstManagerStatus> {
