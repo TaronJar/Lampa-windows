@@ -7,17 +7,15 @@ function init(){
     const bridge = window.torrserverGst
     if(!bridge) return
 
-    bridge.status().then(status => {
-        if(!status.running) restorePreviousLink()
-    }).catch(()=>{})
+    // GST auto-connects on app startup when installed, unless the user has
+    // explicitly switched back to the regular TorrServer from this manager.
+    autoConnectGst(bridge)
 
     const component = 'torrserver_gst'
     const icon = '<svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="30" height="30" rx="5" fill="none" stroke="white" stroke-width="2.5"/><path d="M11 10h14v3H11zm0 6h14v3H11zm0 6h8v3h-8z" fill="white"/></svg>'
 
     SettingsApi.addComponent({ component, icon, name: 'TorrServer GST (Windows)' })
 
-    // One status action, one installer/updater, one toggle. No separate
-    // start/stop or release-check actions cluttering the settings page.
     SettingsApi.addParam({
         component,
         param: { name: 'gst_status', type: 'button', default: '' },
@@ -53,6 +51,7 @@ function init(){
                 if(current.running){
                     const result = await bridge.stop()
                     if(result.stopped){
+                        Storage.set(GST_AUTOSTART_KEY, false)
                         restorePreviousLink()
                         Settings.create('server')
                         Noty.show('GST остановлен. Восстановлена прежняя ссылка TorrServer.', { time: 6000 })
@@ -62,6 +61,7 @@ function init(){
                 } else {
                     const status = await bridge.start()
                     if(status.running){
+                        Storage.set(GST_AUTOSTART_KEY, true)
                         connectGstLink(status.url)
                         Settings.create('server')
                     }
@@ -73,6 +73,29 @@ function init(){
 }
 
 const GST_BACKUP_KEY = 'torrserver_gst_previous_link'
+const GST_AUTOSTART_KEY = 'torrserver_gst_autostart'
+
+async function autoConnectGst(bridge){
+    try {
+        const initial = await bridge.status()
+        const enabled = Storage.get(GST_AUTOSTART_KEY, true)
+        if(!initial.installed || !enabled){
+            if(!initial.running) restorePreviousLink()
+            return
+        }
+
+        const status = initial.running ? initial : await bridge.start()
+        if(status.running){
+            connectGstLink(status.url)
+            Settings.create('server')
+        }
+    } catch (error) {
+        // Auto-start is best-effort; leave the regular app usable if GST
+        // cannot start (for example, when another process owns the port).
+        restorePreviousLink()
+        showError(error)
+    }
+}
 
 function activeLinkKey(){
     return Storage.get('torrserver_use_link', 'one') === 'two' ? 'torrserver_url_two' : 'torrserver_url'
