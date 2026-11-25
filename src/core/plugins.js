@@ -40,11 +40,10 @@ function get(){
 function modify(){
     let list = Storage.get('plugins','[]')
 
-    // Install ByLampa Store by default, unless explicitly removed by user
-    const store_url = 'https://bylampa.github.io/addon.js'
-    const removed = Storage.get('plugins_auto_removed','[]')
-    if(!list.some(a=>(typeof a == 'string' ? a : a.url) == store_url) && !removed.includes(store_url)){
-        list.push({url: store_url, name: 'ByLampa Store', author: 'ByLampa', descr: 'Магазин плагинов ByLampa', status: 1})
+    // Seed default plugin links only once on a fresh install.
+    if(!Storage.get('plugins_defaults_initialized',false) && Storage.value('plugins') === ''){
+        list.push('https://bylampa.github.io/addon.js')
+        Storage.set('plugins_defaults_initialized',true)
     }
 
     list = list.map(a=>{
@@ -61,12 +60,6 @@ function modify(){
 }
 
 function remove(plug){
-    const store_url = 'https://bylampa.github.io/addon.js'
-    if(plug.url == store_url){
-        let removed = Storage.get('plugins_auto_removed','[]')
-        if(!removed.includes(store_url)) removed.push(store_url)
-        Storage.set('plugins_auto_removed', removed)
-    }
     Arrays.remove(_loaded, plug)
 
     console.log('Plugins','remove:', plug, 'index:', _loaded.indexOf(plug) ,'from:', _loaded)
