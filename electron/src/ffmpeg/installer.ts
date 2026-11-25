@@ -26,7 +26,7 @@ async function fetchJson(url: string): Promise<any> {
     return response.json();
 }
 
-async function downloadVerified(url: string, destination: string, expectedDigest: string): Promise<void> {
+export type FfmpegProgress = { phase: 'metadata' | 'download' | 'verify' | 'extract' | 'validate' | 'install' | 'complete'; percent?: number; detail?: string; bytes?: number; total?: number };\n\nasync function downloadVerified(url: string, destination: string, expectedDigest: string, onProgress?: (progress: FfmpegProgress) => void, total?: number): Promise<void> {
     trustedHttps(url);
     const response = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(180000) });
     if (!response.ok || !response.body) throw new Error(`FFmpeg download failed: HTTP ${response.status}`);
@@ -87,7 +87,7 @@ function runPowerShellExtract(zipPath: string, destination: string): Promise<voi
     });
 }
 
-export async function installFfmpeg(userDataPath: string): Promise<FfmpegInstallResult> {
+export async function installFfmpeg(userDataPath: string, onProgress?: (progress: FfmpegProgress) => void): Promise<FfmpegInstallResult> {
     if (process.platform !== 'win32' || process.arch !== 'x64') throw new Error('FFmpeg installer currently supports Windows x64 only.');
     const base = join(userDataPath, 'tools', 'ffmpeg');
     const staging = join(userDataPath, 'tools', `.ffmpeg-staging-${Date.now()}`);
@@ -97,13 +97,13 @@ export async function installFfmpeg(userDataPath: string): Promise<FfmpegInstall
     let backedUp = false;
     await mkdir(extracted, { recursive: true });
     try {
-        const release = await fetchJson(RELEASE_API);
+        onProgress?.({ phase: 'metadata', detail: 'Получение информации о релизе' });\n        const release = await fetchJson(RELEASE_API);
         const asset = release.assets?.find((item: any) => item.name === ASSET_NAME);
         if (!asset?.browser_download_url || !asset?.digest || !/^sha256:[a-f0-9]{64}$/i.test(asset.digest)) {
             throw new Error('The GitHub release does not provide the expected archive and SHA-256 digest.');
         }
-        await downloadVerified(asset.browser_download_url, archive, asset.digest.slice(7));
-        await runPowerShellExtract(archive, extracted);
+        onProgress?.({ phase: 'download', percent: 0, total: asset.size });\n        await downloadVerified(asset.browser_download_url, archive, asset.digest.slice(7), onProgress, asset.size);\n        onProgress?.({ phase: 'verify', detail: 'Проверка SHA-256' });
+        onProgress?.({ phase: 'extract', detail: 'Распаковка архива' });\n        await runPowerShellExtract(archive, extracted);
         const ffmpeg = await findBinary(extracted, 'ffmpeg.exe');
         const ffprobe = await findBinary(extracted, 'ffprobe.exe');
         if (!ffmpeg || !ffprobe) throw new Error('FFmpeg archive is missing ffmpeg.exe or ffprobe.exe.');
@@ -114,7 +114,7 @@ export async function installFfmpeg(userDataPath: string): Promise<FfmpegInstall
         const ffmpegTemp = join(installTemp, 'ffmpeg.exe');
         const ffprobeTemp = join(installTemp, 'ffprobe.exe');
         const { copyFile } = await import('node:fs/promises');
-        await copyFile(ffmpeg, ffmpegTemp);
+        onProgress?.({ phase: 'install', detail: 'Установка бинарников' });\n        await copyFile(ffmpeg, ffmpegTemp);
         await copyFile(ffprobe, ffprobeTemp);
         await mkdir(join(userDataPath, 'tools'), { recursive: true });
         try { await rename(base, backup); backedUp = true; } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
@@ -125,7 +125,7 @@ export async function installFfmpeg(userDataPath: string): Promise<FfmpegInstall
             if (backedUp) await rename(backup, base).catch(() => undefined);
             throw error;
         }
-        return { ffmpegPath: join(base, 'ffmpeg.exe'), ffprobePath: join(base, 'ffprobe.exe'), version: String(release.tag_name || release.name || 'latest') };
+        onProgress?.({ phase: 'complete', percent: 100, detail: 'Установка завершена' });\n        return { ffmpegPath: join(base, 'ffmpeg.exe'), ffprobePath: join(base, 'ffprobe.exe'), version: String(release.tag_name || release.name || 'latest') };
     } finally {
         await rm(staging, { recursive: true, force: true }).catch(() => undefined);
     }
