@@ -43,27 +43,6 @@ function init(){
 
     SettingsApi.addParam({
         component,
-        param: { name: 'gst_diagnostics', type: 'button', default: '' },
-        field: { name: 'Диагностика GST', description: 'Показывает путь GST и найденные runtime-компоненты' },
-        onChange: async () => {
-            try {
-                Noty.show('Сканирую папку TorrServer GST…', { time: 3000 })
-                const report = await bridge.diagnostics()
-                const lines = [
-                    'EXE: ' + (report.installed ? 'найден' : 'НЕ НАЙДЕН'),
-                    'Путь: ' + report.executablePath,
-                    'Файлов просканировано: ' + report.filesScanned,
-                    'Runtime: ' + (report.runtimeFiles.length ? report.runtimeFiles.join(', ') : 'не найден'),
-                    'Плагины: ' + (report.pluginFiles.length ? report.pluginFiles.join(', ') : 'не найдены'),
-                    'Не найдены DLL: ' + (report.missingExpected.length ? report.missingExpected.join(', ') : 'нет')
-                ]
-                Noty.show(lines.join(' | '), { time: 15000 })
-            } catch (error) { showError(error) }
-        }
-    })
-
-    SettingsApi.addParam({
-        component,
         param: { name: 'gst_toggle', type: 'button', default: '' },
         field: { name: 'Переключить GST / обычный TorrServer', description: 'Запускает GST и подключает его в Lampa либо останавливает GST и возвращает прежний сервер' },
         onChange: async () => {
