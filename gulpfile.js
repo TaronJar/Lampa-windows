@@ -157,30 +157,26 @@ var copy_timer;
 
 /** Обновляем файл для WEB **/
 function build_web(done){
-    clearTimeout(copy_timer)
+    var date = new Date();
+    var full_date = date.getFullYear() + '-' +
+                    ('0' + (date.getMonth()+1)).slice(-2) + '-' +
+                    ('0' + date.getDate()).slice(-2) + ' ' +
+                    ('0' + date.getHours()).slice(-2) + ':' +
+                    ('0' + date.getMinutes()).slice(-2);
 
-    //таймер сила!
-    copy_timer = setTimeout(()=>{
-        //src([dstFolder+'app.js']).pipe(dest(bulFolder+'web/'));
+    var app = fs.readFileSync(dstFolder + 'app.js', 'utf8');
+    app = app.replace('{__APP_HASH__}', getFileHash(dstFolder + 'app.js'));
+    app = app.replace('{__APP_BUILD__}', full_date);
 
-        let date      = new Date();
-        let full_date = date.getFullYear() + '-' +
-                        ('0' + (date.getMonth()+1)).slice(-2) + '-' +
-                        ('0' + date.getDate()).slice(-2) + ' ' +
-                        ('0' + date.getHours()).slice(-2) + ':' +
-                        ('0' + date.getMinutes()).slice(-2);
+    fs.mkdirSync(bulFolder + 'web/', { recursive: true });
+    fs.writeFileSync(bulFolder + 'web/app.js', app);
 
-        src(dstFolder+'app.js')
-            .pipe(replace('{__APP_HASH__}', getFileHash(dstFolder + '/app.js')))
-            .pipe(replace('{__APP_BUILD__}', full_date))
-            .pipe(dest(bulFolder+'web/'));
-
-        fs.readdirSync(dstFolder).filter(function (file) {
-            return fs.statSync(dstFolder+'/'+file).isDirectory();
-        }).forEach(folder => {
-            src([dstFolder+folder+'/'+folder+'.js']).pipe(dest(bulFolder+'web/plugins'));
-        });
-    },500)
+    fs.mkdirSync(bulFolder + 'web/plugins/', { recursive: true });
+    fs.readdirSync(dstFolder).filter(function (file) {
+        return fs.statSync(dstFolder+'/'+file).isDirectory();
+    }).forEach(folder => {
+        fs.copyFileSync(dstFolder+folder+'/'+folder+'.js', bulFolder+'web/plugins/'+folder+'.js');
+    });
 
     done();
 }
