@@ -120,7 +120,8 @@ export async function installFfmpeg(userDataPath: string, onProgress?: (progress
         const ffmpegTemp = join(installTemp, 'ffmpeg.exe');
         const ffprobeTemp = join(installTemp, 'ffprobe.exe');
         const { copyFile } = await import('node:fs/promises');
-        onProgress?.({ phase: 'install', detail: 'Установка бинарников' });\n        await copyFile(ffmpeg, ffmpegTemp);
+        onProgress?.({ phase: 'install', detail: 'Установка бинарников' });
+        await copyFile(ffmpeg, ffmpegTemp);
         await copyFile(ffprobe, ffprobeTemp);
         await mkdir(join(userDataPath, 'tools'), { recursive: true });
         try { await rename(base, backup); backedUp = true; } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
@@ -131,7 +132,8 @@ export async function installFfmpeg(userDataPath: string, onProgress?: (progress
             if (backedUp) await rename(backup, base).catch(() => undefined);
             throw error;
         }
-        onProgress?.({ phase: 'complete', percent: 100, detail: 'Установка завершена' });\n        return { ffmpegPath: join(base, 'ffmpeg.exe'), ffprobePath: join(base, 'ffprobe.exe'), version: String(release.tag_name || release.name || 'latest') };
+        onProgress?.({ phase: 'complete', percent: 100, detail: 'Установка завершена' });
+        return { ffmpegPath: join(base, 'ffmpeg.exe'), ffprobePath: join(base, 'ffprobe.exe'), version: String(release.tag_name || release.name || 'latest') };
     } finally {
         await rm(staging, { recursive: true, force: true }).catch(() => undefined);
     }
