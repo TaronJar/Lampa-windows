@@ -37,11 +37,16 @@ async function findLatestWindowsGstReleaseWithoutApi(): Promise<GstRelease> {
     });
     if (!indexPage.ok) throw new Error(`GitHub releases page failed (${indexPage.status})`);
     const html = await indexPage.text();
-    const tagPattern = /href="\\/YouROK\\/TorrServer\\/releases\\/tag\\/([^"]+)"/g;
+    const tagMarker = '/YouROK/TorrServer/releases/tag/';
     const tags: string[] = [];
-    for (const match of html.matchAll(tagPattern)) {
-        const tag = decodeURIComponent(match[1]);
-        if (!tags.includes(tag)) tags.push(tag);
+    let cursor = 0;
+    while ((cursor = html.indexOf(tagMarker, cursor)) !== -1) {
+        const tagStart = cursor + tagMarker.length;
+        const tagEnd = html.indexOf('"', tagStart);
+        if (tagEnd < 0) break;
+        const tag = decodeURIComponent(html.slice(tagStart, tagEnd));
+        if (tag && !tags.includes(tag)) tags.push(tag);
+        cursor = tagEnd + 1;
     }
     for (const tag of tags) {
         const page = await fetch(`https://github.com/YouROK/TorrServer/releases/tag/${encodeURIComponent(tag)}`, {
