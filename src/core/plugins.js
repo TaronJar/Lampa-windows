@@ -46,6 +46,16 @@ function modify(){
         {url: 'https://bwa.ad/rc', name: 'BwaRC Online', author: 'BwaRC', descr: 'Основной плагин онлайн-просмотра'}
     ]
 
+    // One-time migration: ensure managed plugins are present on existing installs.
+    // After migration, explicit removals are respected by the normal auto-add logic.
+    if(!Storage.get('plugins_auto_migrated', false)){
+        auto_plugins.forEach(plugin=>{
+            const exists = list.some(a=>(typeof a == 'string' ? a : a.url) == plugin.url)
+            if(!exists) list.push({...plugin, status: 1})
+        })
+        Storage.set('plugins_auto_migrated', true)
+    }
+
     // Add managed plugins only if the user hasn't explicitly removed them
     auto_plugins.forEach(plugin=>{
         const exists = list.some(a=>(typeof a == 'string' ? a : a.url) == plugin.url)
