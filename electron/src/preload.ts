@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 export interface GstBridge {
     status(): Promise<{ installed: boolean; running: boolean; executablePath: string; port: number; url: string; pid?: number }>;
+    diagnostics(): Promise<{ executablePath: string; installDirectory: string; installed: boolean; filesScanned: number; runtimeFiles: string[]; pluginFiles: string[]; missingExpected: string[] }>;
     latest(): Promise<{ tag: string; name: string; publishedAt: string; assetName: string; checksum: string }>;
     installLatest(): Promise<{ executablePath: string; version: string; backupPath?: string }>;
     start(): Promise<{ installed: boolean; running: boolean; executablePath: string; port: number; url: string; pid?: number }>;
@@ -11,6 +12,7 @@ export interface GstBridge {
 
 contextBridge.exposeInMainWorld('torrserverGst', {
     status: () => ipcRenderer.invoke('torrserver-gst:status'),
+    diagnostics: () => ipcRenderer.invoke('torrserver-gst:diagnostics'),
     latest: () => ipcRenderer.invoke('torrserver-gst:latest'),
     installLatest: () => ipcRenderer.invoke('torrserver-gst:install'),
     start: () => ipcRenderer.invoke('torrserver-gst:start'),
