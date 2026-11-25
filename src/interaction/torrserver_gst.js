@@ -52,6 +52,7 @@ function init(){
                     const result = await bridge.stop()
                     if(result.stopped){
                         Storage.set(GST_AUTOSTART_KEY, false)
+                        await bridge.setAutostart(false)
                         restorePreviousLink()
                         Settings.create('server')
                         Noty.show('GST остановлен. Восстановлена прежняя ссылка TorrServer.', { time: 6000 })
@@ -62,6 +63,7 @@ function init(){
                     const status = await bridge.start()
                     if(status.running){
                         Storage.set(GST_AUTOSTART_KEY, true)
+                        await bridge.setAutostart(true)
                         connectGstLink(status.url)
                         Settings.create('server')
                     }
