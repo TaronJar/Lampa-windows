@@ -47,8 +47,8 @@ function Main(){
                     <div class="settings-folder__name">${aded.name}</div>
                 </div>`)
 
-                if(aded.before) comp.find('[data-component="'+aded.before+'"]').before(item)
-                else if(aded.after) comp.find('[data-component="'+aded.after+'"]').after(item)
+                if(aded.before && comp.find('[data-component="'+aded.before+'"]').length) comp.find('[data-component="'+aded.before+'"]').before(item)
+                else if(aded.after && comp.find('[data-component="'+aded.after+'"]').length) comp.find('[data-component="'+aded.after+'"]').after(item)
                 else comp.append(item)
             }
         }
