@@ -14,7 +14,7 @@ function init(){
     const component = 'torrserver_gst'
     const icon = '<svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="30" height="30" rx="5" fill="none" stroke="white" stroke-width="2.5"/><path d="M11 10h14v3H11zm0 6h14v3H11zm0 6h8v3h-8z" fill="white"/></svg>'
 
-    SettingsApi.addComponent({ component, icon, name: 'TorrServer GST (Windows)' })
+    SettingsApi.addComponent({ component, icon, name: 'TorrServer GST' })
 
     SettingsApi.addParam({
         component,
