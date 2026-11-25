@@ -14,6 +14,7 @@ import settings_parser from '../templates/settings/parser'
 import settings_server from '../templates/settings/server'
 import settings_player from '../templates/settings/player'
 import settings_more from '../templates/settings/more'
+import settings_torrserver_gst from '../templates/settings/torrserver_gst'
 import settings_tmdb from '../templates/settings/tmdb'
 import settings_plugins from '../templates/settings/plugins'
 import settings_account from '../templates/settings/account'
@@ -156,6 +157,7 @@ let templates = {
     settings_server,
     settings_player,
     settings_more,
+    settings_torrserver_gst,
     settings_tmdb,
     settings_plugins,
     settings_account,
