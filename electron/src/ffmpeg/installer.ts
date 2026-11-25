@@ -99,13 +99,17 @@ export async function installFfmpeg(userDataPath: string, onProgress?: (progress
     let backedUp = false;
     await mkdir(extracted, { recursive: true });
     try {
-        onProgress?.({ phase: 'metadata', detail: 'Получение информации о релизе' });\n        const release = await fetchJson(RELEASE_API);
+        onProgress?.({ phase: 'metadata', detail: 'Получение информации о релизе' });
+        const release = await fetchJson(RELEASE_API);
         const asset = release.assets?.find((item: any) => item.name === ASSET_NAME);
         if (!asset?.browser_download_url || !asset?.digest || !/^sha256:[a-f0-9]{64}$/i.test(asset.digest)) {
             throw new Error('The GitHub release does not provide the expected archive and SHA-256 digest.');
         }
-        onProgress?.({ phase: 'download', percent: 0, total: asset.size });\n        await downloadVerified(asset.browser_download_url, archive, asset.digest.slice(7), onProgress, asset.size);\n        onProgress?.({ phase: 'verify', detail: 'Проверка SHA-256' });
-        onProgress?.({ phase: 'extract', detail: 'Распаковка архива' });\n        await runPowerShellExtract(archive, extracted);
+        onProgress?.({ phase: 'download', percent: 0, total: asset.size });
+        await downloadVerified(asset.browser_download_url, archive, asset.digest.slice(7), onProgress, asset.size);
+        onProgress?.({ phase: 'verify', detail: 'Проверка SHA-256' });
+        onProgress?.({ phase: 'extract', detail: 'Распаковка архива' });
+        await runPowerShellExtract(archive, extracted);
         const ffmpeg = await findBinary(extracted, 'ffmpeg.exe');
         const ffprobe = await findBinary(extracted, 'ffprobe.exe');
         if (!ffmpeg || !ffprobe) throw new Error('FFmpeg archive is missing ffmpeg.exe or ffprobe.exe.');
