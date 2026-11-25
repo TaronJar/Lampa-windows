@@ -31,47 +31,31 @@ function readChecksum(text: string, assetName: string): string | null {
 
 /** Finds the newest release that actually publishes the GST Windows x64 asset. */
 async function findLatestWindowsGstReleaseWithoutApi(): Promise<GstRelease> {
-    const indexPage = await fetch('https://github.com/YouROK/TorrServer/releases', {
+    // GitHub API rate limit fallback: resolve the latest tag via redirect, then read
+    // embedded release asset metadata (including digest) from that exact release page.
+    const latest = await fetch('https://github.com/YouROK/TorrServer/releases/latest', {
+        redirect: 'follow',
         signal: AbortSignal.timeout(15000),
         headers: { 'User-Agent': 'Lampa-Windows-GST-Manager' }
     });
-    if (!indexPage.ok) throw new Error(`GitHub releases page failed (${indexPage.status})`);
-    const html = await indexPage.text();
-    const tagMarker = '/YouROK/TorrServer/releases/tag/';
-    const tags: string[] = [];
-    let cursor = 0;
-    while ((cursor = html.indexOf(tagMarker, cursor)) !== -1) {
-        const tagStart = cursor + tagMarker.length;
-        const tagEnd = html.indexOf('"', tagStart);
-        if (tagEnd < 0) break;
-        const tag = decodeURIComponent(html.slice(tagStart, tagEnd));
-        if (tag && !tags.includes(tag)) tags.push(tag);
-        cursor = tagEnd + 1;
-    }
-    for (const tag of tags) {
-        const page = await fetch(`https://github.com/YouROK/TorrServer/releases/tag/${encodeURIComponent(tag)}`, {
-            signal: AbortSignal.timeout(15000),
-            headers: { 'User-Agent': 'Lampa-Windows-GST-Manager' }
-        });
-        if (!page.ok) continue;
-        const releaseHtml = await page.text();
-        const assetIndex = releaseHtml.indexOf(`"name":"${GST_ASSET}"`);
-        if (assetIndex < 0) continue;
-        const assetFragment = releaseHtml.slice(assetIndex, assetIndex + 2000);
-        const digest = assetFragment.match(/"digest":"sha256:([a-fA-F0-9]{64})"/)?.[1]?.toLowerCase();
-        const downloadUrl = assetFragment.match(/"browser_download_url":"([^"]+)"/)?.[1];
-        if (!digest || !downloadUrl) continue;
-        assertGitHubHttps(downloadUrl);
-        return {
-            tag,
-            name: tag,
-            publishedAt: '',
-            assetName: GST_ASSET,
-            downloadUrl,
-            checksum: digest
-        };
-    }
-    throw new Error('Could not find a Windows GST release with SHA-256 digest in public release pages');
+    if (!latest.ok) throw new Error(`GitHub latest release page failed (${latest.status})`);
+    const tag = decodeURIComponent(new URL(latest.url).pathname.split('/').filter(Boolean).pop() || '');
+    if (!tag || tag === 'latest') throw new Error('Could not resolve latest TorrServer release tag');
+
+    const page = await fetch(`https://github.com/YouROK/TorrServer/releases/tag/${encodeURIComponent(tag)}`, {
+        signal: AbortSignal.timeout(15000),
+        headers: { 'User-Agent': 'Lampa-Windows-GST-Manager' }
+    });
+    if (!page.ok) throw new Error(`GitHub release page failed (${page.status})`);
+    const html = await page.text();
+    const assetIndex = html.indexOf(`"name":"${GST_ASSET}"`);
+    if (assetIndex < 0) throw new Error(`Latest release ${tag} has no Windows GST asset`);
+    const fragment = html.slice(assetIndex, assetIndex + 3000);
+    const digest = fragment.match(/"digest":"sha256:([a-fA-F0-9]{64})"/)?.[1]?.toLowerCase();
+    const downloadUrl = fragment.match(/"browser_download_url":"([^"]+)"/)?.[1];
+    if (!digest || !downloadUrl) throw new Error(`Could not extract Windows GST digest/link from release ${tag}`);
+    assertGitHubHttps(downloadUrl);
+    return { tag, name: tag, publishedAt: '', assetName: GST_ASSET, downloadUrl, checksum: digest };
 }
 
 export async function findLatestWindowsGstRelease(): Promise<GstRelease> {
