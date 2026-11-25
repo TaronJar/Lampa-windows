@@ -117,7 +117,10 @@ export class GstManager {
             const response = await fetch(`${this.url}/gst/echo`, { signal: AbortSignal.timeout(900) });
             if (!response.ok) return false;
             const body: unknown = await response.json();
-            return !!body && typeof body === 'object' && ('found' in body || 'available' in body || 'works' in body);
+            if (!body || typeof body !== 'object' || !('gstreamer' in body)) return false;
+            const gst = (body as { gstreamer?: { found?: boolean; available?: boolean; works?: boolean } }).gstreamer;
+            // Accept only the embedded GStreamer runtime reporting a working state.
+            return gst?.works === true;
         } catch { return false; }
     }
 }
