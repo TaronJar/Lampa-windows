@@ -46,6 +46,12 @@ function modify(){
         list.push({url: bylampa_store, name: 'ByLampa Store', author: 'ByLampa', descr: 'Магазин плагинов ByLampa', status: 1})
     }
 
+    // Install NUMParser by default
+    const numparser = 'https://num.jac-red.ru/plugin/nmprs.js'
+    if(!list.some(a=>(typeof a == 'string' ? a : a.url) == numparser)){
+        list.push({url: numparser, name: 'NUMParser', author: 'NUM', descr: 'Каталог NUMParser', status: 1})
+    }
+
     list = list.map(a=>{
         return typeof a == 'string' ? {url: a, status: 1} : a
     })
