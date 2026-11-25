@@ -30,7 +30,7 @@ export class FfmpegPreviewManager {
             child.stdout?.on('data', chunk => { output += String(chunk); });
             const timer = setTimeout(() => { child.kill(); resolve('unknown'); }, 8000);
             child.once('error', () => { clearTimeout(timer); resolve('unknown'); });
-            child.once('exit', code => { clearTimeout(timer); resolve(code === 0 ? (output.split(/\\r?\\n/)[0] || 'unknown') : 'unknown'); });
+            child.once('exit', code => { clearTimeout(timer); resolve(code === 0 ? (output.split(/\r?\n/)[0] || 'unknown') : 'unknown'); });
         });
         return { installed: hasFfmpeg && hasFfprobe, ffmpeg: hasFfmpeg, ffprobe: hasFfprobe, version };
     }
