@@ -9,6 +9,10 @@ export interface GstBridge {
     setAutostart(enabled: boolean): Promise<boolean>;
 }
 
+contextBridge.exposeInMainWorld('lampaFfmpegPreview', {
+    frame: (url: string, seconds: number): Promise<string | null> => ipcRenderer.invoke('lampa-ffmpeg:preview', url, seconds)
+});
+
 contextBridge.exposeInMainWorld('torrserverGst', {
     status: () => ipcRenderer.invoke('torrserver-gst:status'),
     latest: () => ipcRenderer.invoke('torrserver-gst:latest'),
