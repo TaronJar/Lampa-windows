@@ -48,6 +48,14 @@ let html = `<div>
         </div>
         <div class="settings-folder__name">TorrServer GST</div>
     </div>
+    <div class="settings-folder selector" data-component="ffmpeg_manager">
+        <div class="settings-folder__icon">
+            <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20.8 2.5 8.4 19.4h8.2l-2.3 14.1 13.3-19h-8.5z" fill="white"/>
+            </svg>
+        </div>
+        <div class="settings-folder__name">FFmpeg</div>
+    </div>
     <div class="settings-folder selector" data-component="tmdb">
         <div class="settings-folder__icon">
             <svg xmlns="http://www.w3.org/2000/svg" height="32" viewBox="0 0 32 32">
