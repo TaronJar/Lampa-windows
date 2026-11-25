@@ -57,6 +57,26 @@ function modify(){
         Storage.set('plugins_auto_migrated', true)
     }
 
+    // Repair migration v2: previous migration may have run before the list was correctly populated.
+    if(!Storage.get('plugins_auto_migrated_v2', false)){
+        const repair_urls = [
+            'https://num.jac-red.ru/plugin/nmprs.js',
+            'https://bwa.ad/rc'
+        ]
+        auto_removed = auto_removed.filter(url=>repair_urls.indexOf(url) < 0)
+        Storage.set('plugins_auto_removed', auto_removed)
+        repair_urls.forEach(url=>{
+            const plugin = auto_plugins.find(a=>a.url == url)
+            const exists = list.some(a=>(typeof a == 'string' ? a : a.url) == url)
+            if(plugin && !exists) list.push({...plugin, status:1})
+            else{
+                const found = list.find(a=>(typeof a == 'string' ? a : a.url) == url)
+                if(found) found.status = 1
+            }
+        })
+        Storage.set('plugins_auto_migrated_v2', true)
+    }
+
     // Add managed plugins only if the user hasn't explicitly removed them
     auto_plugins.forEach(plugin=>{
         const exists = list.some(a=>(typeof a == 'string' ? a : a.url) == plugin.url)
