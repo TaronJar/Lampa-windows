@@ -17,6 +17,11 @@ let listener = Subscribe()
  * Запуск
  */
 function init(){
+    // Apply Jackett default after module imports have completed.
+    if(!Storage.get('jackett_url_default_migrated')){
+        if(!Storage.get('jackett_url')) Storage.set('jackett_url','jacred.xyz')
+        Storage.set('jackett_url_default_migrated',true)
+    }
     if(Platform.is('tizen')){
         select('player',{
             'inner': '#{settings_param_player_inner}',
@@ -806,13 +811,6 @@ trigger('menu_always', false)
 trigger('player_external_fullscreen', true)
 trigger('adult_content_view', false)
 
-/**
- * Добовляем поля
- */
-if(!Storage.get('jackett_url_default_migrated')){
-    if(!Storage.get('jackett_url')) Storage.set('jackett_url','jacred.xyz')
-    Storage.set('jackett_url_default_migrated',true)
-}
 select('jackett_url','','jacred.xyz')
 select('jackett_key','','')
 select('jackett_url_two','','')
