@@ -62,7 +62,7 @@ function init(){
         onChange: async () => {
             try {
                 const release = await bridge.latest()
-                Noty.show('Последний релиз: ' + release.tag + ' (' + release.assetName + ')', { time: 6000 })
+                Noty.show('Последний релиз: ' + escapeHtml(release.tag) + ' (' + escapeHtml(release.assetName) + ')', { time: 6000 })
             } catch (error) { showError(error) }
         }
     })
@@ -80,13 +80,13 @@ function init(){
     })
 }
 
-function statusMessage(status){
+function escapeHtml(value){\n    return String(value).replace(/[&<>\\\"']/g, character => ({\n        '&': '&amp;',\n        '<': '&lt;',\n        '>': '&gt;',\n        '\\"': '&quot;',\n        \"'\": '&#39;'\n    }[character]))\n}\n\nfunction statusMessage(status){
     return 'TorrServer GST: ' + (status.installed ? 'установлен' : 'не установлен') + ', ' + (status.running ? 'запущен' : 'остановлен') + '. URL: ' + status.url
 }
 
 function showError(error){
     const message = error && error.message ? error.message : String(error)
-    Noty.show('Ошибка TorrServer GST: ' + message, { time: 8000 })
+    Noty.show('Ошибка TorrServer GST: ' + escapeHtml(message), { time: 8000 })
 }
 
 export default { init }
