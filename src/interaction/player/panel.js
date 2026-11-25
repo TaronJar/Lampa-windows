@@ -156,10 +156,50 @@ function init(){
 
     Html.elem('rewind_touch').toggleClass('hide',!Platform.screen('mobile'))
 
+    let previewTimer
+    let previewRequest = 0
+    let previewLastKey = ''
+
     Html.elem('timeline').on('mousemove',(e)=>{
-        if(!Platform.screen('mobile')) listener.send('mouse_rewind',{method: 'move',time: Html.elem('time'), percent: percent(e)})
+        if(!Platform.screen('mobile')) {
+            listener.send('mouse_rewind',{method: 'move',time: Html.elem('time'), percent: percent(e)})
+            const vid = Video.video()
+            const source = vid && (vid.currentSrc || vid.src)
+            const duration = Number(vid && vid.duration)
+            const pct = Math.max(0, Math.min(1, percent(e)))
+            const seconds = Math.floor(duration * pct)
+            const preview = Html.elem('timeline').find('.player-panel__preview')
+            preview.css('left', (pct * 100) + '%')
+            preview.find('span').text(Utils.secondsToTime(seconds))
+            if(source && Number.isFinite(duration) && duration > 0 && seconds >= 0 && window.lampaFfmpegPreview && seconds !== Math.floor(vid.currentTime)){
+                const key = source + '|' + seconds
+                if(key !== previewLastKey){
+                    previewLastKey = key
+                    clearTimeout(previewTimer)
+                    previewRequest++
+                    const requestId = previewRequest
+                    previewTimer = setTimeout(async ()=>{
+                        try{
+                            const image = await window.lampaFfmpegPreview.frame(source, seconds)
+                            if(requestId !== previewRequest || !image) return
+                            preview.find('img').attr('src', image)
+                            preview.removeClass('hide')
+                        }
+                        catch(error){
+                            if(requestId === previewRequest) preview.addClass('hide')
+                        }
+                    }, 450)
+                }
+            }
+        }
     }).on('mouseout',()=>{
-        if(!Platform.screen('mobile')) Html.elem('time').addClass('hide')
+        if(!Platform.screen('mobile')) {
+            Html.elem('time').addClass('hide')
+            clearTimeout(previewTimer)
+            previewRequest++
+            previewLastKey = ''
+            Html.elem('timeline').find('.player-panel__preview').addClass('hide').find('img').attr('src','')
+        }
     }).on('click',(e)=>{
         if(DeviceInput.canClick(e.originalEvent) && !Platform.screen('mobile')) listener.send('mouse_rewind',{method: 'click',time: Html.elem('time'), percent: percent(e)})
     })
