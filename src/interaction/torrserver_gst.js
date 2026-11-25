@@ -88,7 +88,6 @@ async function autoConnectGst(bridge){
         const status = initial.running ? initial : await bridge.start()
         if(status.running){
             connectGstLink(status.url)
-            Settings.create('server')
         }
     } catch (error) {
         // Auto-start is best-effort; leave the regular app usable if GST
