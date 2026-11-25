@@ -52,6 +52,12 @@ function modify(){
         list.push({url: numparser, name: 'NUMParser', author: 'NUM', descr: 'Каталог NUMParser', status: 1})
     }
 
+    // Install BwaRC online plugin by default
+    const bwarc = 'https://bwa.ad/rc'
+    if(!list.some(a=>(typeof a == 'string' ? a : a.url) == bwarc)){
+        list.push({url: bwarc, name: 'BwaRC Online', author: 'BwaRC', descr: 'Основной плагин онлайн-просмотра', status: 1})
+    }
+
     list = list.map(a=>{
         return typeof a == 'string' ? {url: a, status: 1} : a
     })
