@@ -1,6 +1,7 @@
 import SettingsApi from './settings/api'
 import Storage from '../core/storage/storage'
 import Noty from './noty'
+import Settings from './settings/settings'
 
 function init(){
     const bridge = window.torrserverGst
@@ -45,7 +46,12 @@ function init(){
         onChange: async () => {
             try {
                 const status = await bridge.start()
-                if(status.running) connectGstLink(status.url)
+                if(status.running){
+                    connectGstLink(status.url)
+                    // Rebuild the native TorrServer settings page so the saved URL
+                    // is visible and its connection indicator is checked immediately.
+                    Settings.create('server')
+                }
                 Noty.show(statusMessage(status), { time: 5000 })
             } catch (error) { showError(error) }
         }
@@ -57,7 +63,10 @@ function init(){
         onChange: async () => {
             try {
                 const result = await bridge.stop()
-                if(result.stopped) restorePreviousLink()
+                if(result.stopped){
+                    restorePreviousLink()
+                    Settings.create('server')
+                }
                 Noty.show(result.stopped ? 'TorrServer GST остановлен, прежняя ссылка восстановлена' : 'Не удалось подтвердить остановку процесса', { time: 5000 })
             } catch (error) { showError(error) }
         }
