@@ -918,7 +918,8 @@ if(!window.fitst_load){
     window.fitst_load = true
 
     initClass()
-    TorrserverGstManager.init()\n    FfmpegManager.init()
+    TorrserverGstManager.init()
+    FfmpegManager.init()
     
     if(navigator.userAgent.toLowerCase().indexOf('lampa_client') > -1){
         function checkReady(){
