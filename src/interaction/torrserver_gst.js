@@ -65,8 +65,7 @@ function init(){
                         Storage.set(GST_AUTOSTART_KEY, true)
                         await bridge.setAutostart(true)
                         connectGstLink(status.url)
-                        Settings.create('server')
-                    }
+                                }
                     Noty.show(statusMessage(status), { time: 6000 })
                 }
             } catch (error) { showError(error) }
