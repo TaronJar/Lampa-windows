@@ -43,7 +43,7 @@ function requireTrustedSender(event: IpcMainInvokeEvent): GstManager {
 
 function registerGstIpc(): void {
     ipcMain.handle('lampa-ffmpeg:status', (event) => { if (!isTrustedSender(event)) throw new Error('Blocked IPC from untrusted renderer.'); if (!ffmpegPreviewManager) throw new Error('FFmpeg manager is not ready.'); return ffmpegPreviewManager.status(); });
-    ipcMain.handle('lampa-ffmpeg:install', (event) => { if (!isTrustedSender(event)) throw new Error('Blocked IPC from untrusted renderer.'); if (!ffmpegPreviewManager) throw new Error('FFmpeg manager is not ready.'); return ffmpegPreviewManager.install(); });
+    ipcMain.handle('lampa-ffmpeg:install', (event) => { if (!isTrustedSender(event)) throw new Error('Blocked IPC from untrusted renderer.'); if (!ffmpegPreviewManager) throw new Error('FFmpeg manager is not ready.'); return ffmpegPreviewManager.install(progress => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('lampa-ffmpeg:progress', progress); }); });
     ipcMain.handle('lampa-ffmpeg:preview', async (event, url: unknown, seconds: unknown) => {
         if (!isTrustedSender(event)) throw new Error('Blocked IPC from untrusted renderer.');
         if (!ffmpegPreviewManager) throw new Error('FFmpeg preview manager is not ready.');
