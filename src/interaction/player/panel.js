@@ -164,7 +164,8 @@ function init(){
         if(!Platform.screen('mobile')) {
             listener.send('mouse_rewind',{method: 'move',time: Html.elem('time'), percent: percent(e)})
             const vid = Video.video()
-            const source = vid && (vid.currentSrc || vid.src)
+            let source = vid && (vid.currentSrc || vid.src)
+            if(source && !/^https?:\\/\\//i.test(source)) source = Player.playdata() && Player.playdata().url
             const duration = Number(vid && vid.duration)
             const pct = Math.max(0, Math.min(1, percent(e)))
             const seconds = Math.floor(duration * pct)
