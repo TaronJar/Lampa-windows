@@ -39,24 +39,19 @@ function get(){
 
 function modify(){
     let list = Storage.get('plugins','[]')
+    let auto_removed = Storage.get('plugins_auto_removed','[]')
+    const auto_plugins = [
+        {url: 'https://bylampa.github.io/addon.js', name: 'ByLampa Store', author: 'ByLampa', descr: 'Магазин плагинов ByLampa'},
+        {url: 'https://num.jac-red.ru/plugin/nmprs.js', name: 'NUMParser', author: 'NUM', descr: 'Каталог NUMParser'},
+        {url: 'https://bwa.ad/rc', name: 'BwaRC Online', author: 'BwaRC', descr: 'Основной плагин онлайн-просмотра'}
+    ]
 
-    // Install the ByLampa plugin store by default
-    const bylampa_store = 'https://bylampa.github.io/addon.js'
-    if(!list.some(a=>(typeof a == 'string' ? a : a.url) == bylampa_store)){
-        list.push({url: bylampa_store, name: 'ByLampa Store', author: 'ByLampa', descr: 'Магазин плагинов ByLampa', status: 1})
-    }
-
-    // Install NUMParser by default
-    const numparser = 'https://num.jac-red.ru/plugin/nmprs.js'
-    if(!list.some(a=>(typeof a == 'string' ? a : a.url) == numparser)){
-        list.push({url: numparser, name: 'NUMParser', author: 'NUM', descr: 'Каталог NUMParser', status: 1})
-    }
-
-    // Install BwaRC online plugin by default
-    const bwarc = 'https://bwa.ad/rc'
-    if(!list.some(a=>(typeof a == 'string' ? a : a.url) == bwarc)){
-        list.push({url: bwarc, name: 'BwaRC Online', author: 'BwaRC', descr: 'Основной плагин онлайн-просмотра', status: 1})
-    }
+    // Add managed plugins only if the user hasn't explicitly removed them
+    auto_plugins.forEach(plugin=>{
+        const exists = list.some(a=>(typeof a == 'string' ? a : a.url) == plugin.url)
+        const removed = auto_removed.includes(plugin.url)
+        if(!exists && !removed) list.push({...plugin, status: 1})
+    })
 
     list = list.map(a=>{
         return typeof a == 'string' ? {url: a, status: 1} : a
@@ -72,6 +67,20 @@ function modify(){
 }
 
 function remove(plug){
+    const auto_urls = [
+        'https://bylampa.github.io/addon.js',
+        'https://num.jac-red.ru/plugin/nmprs.js',
+        'https://bwa.ad/rc'
+    ]
+    const url = typeof plug == 'string' ? plug : plug && plug.url
+    if(url && auto_urls.includes(url)){
+        let auto_removed = Storage.get('plugins_auto_removed','[]')
+        if(!auto_removed.includes(url)){
+            auto_removed.push(url)
+            Storage.set('plugins_auto_removed', auto_removed)
+        }
+    }
+
     Arrays.remove(_loaded, plug)
 
     console.log('Plugins','remove:', plug, 'index:', _loaded.indexOf(plug) ,'from:', _loaded)
