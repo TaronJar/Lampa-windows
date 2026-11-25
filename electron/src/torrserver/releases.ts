@@ -11,7 +11,7 @@ export interface GstRelease {
     checksum: string;
 }
 
-type GitHubAsset = { name: string; browser_download_url: string };
+type GitHubAsset = { name: string; browser_download_url: string; digest?: string | null };
 type GitHubRelease = { tag_name: string; name: string; published_at: string; assets: GitHubAsset[] };
 
 function assertGitHubHttps(url: string, allowRedirectHosts = false): void {
