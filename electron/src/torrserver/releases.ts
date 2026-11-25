@@ -30,32 +30,76 @@ function readChecksum(text: string, assetName: string): string | null {
 }
 
 /** Finds the newest release that actually publishes the GST Windows x64 asset. */
-export async function findLatestWindowsGstRelease(): Promise<GstRelease> {
-    const response = await fetch(RELEASES_API, {
-        headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'Lampa-Windows-GST-Manager' },
-        signal: AbortSignal.timeout(15000)
+async function findLatestWindowsGstReleaseWithoutApi(): Promise<GstRelease> {
+    const indexPage = await fetch('https://github.com/YouROK/TorrServer/releases', {
+        signal: AbortSignal.timeout(15000),
+        headers: { 'User-Agent': 'Lampa-Windows-GST-Manager' }
     });
-    if (response.status === 403) {
-        throw new Error('GitHub API rate limit reached. Please retry the GST install in a few minutes.');
+    if (!indexPage.ok) throw new Error(`GitHub releases page failed (${indexPage.status})`);
+    const html = await indexPage.text();
+    const tagPattern = /href="\\/YouROK\\/TorrServer\\/releases\\/tag\\/([^"]+)"/g;
+    const tags: string[] = [];
+    for (const match of html.matchAll(tagPattern)) {
+        const tag = decodeURIComponent(match[1]);
+        if (!tags.includes(tag)) tags.push(tag);
     }
-    if (!response.ok) throw new Error(`GitHub releases API failed (${response.status})`);
-
-    const releases = await response.json() as GitHubRelease[];
-    for (const release of releases) {
-        const binary = release.assets?.find(asset => asset.name === GST_ASSET);
-        if (!binary) continue;
-        assertGitHubHttps(binary.browser_download_url);
-        const checksum = typeof binary.digest === 'string' ? binary.digest.match(/^sha256:([a-fA-F0-9]{64})$/)?.[1]?.toLowerCase() : null;
-        if (!checksum) continue;
-
+    for (const tag of tags) {
+        const page = await fetch(`https://github.com/YouROK/TorrServer/releases/tag/${encodeURIComponent(tag)}`, {
+            signal: AbortSignal.timeout(15000),
+            headers: { 'User-Agent': 'Lampa-Windows-GST-Manager' }
+        });
+        if (!page.ok) continue;
+        const releaseHtml = await page.text();
+        const assetIndex = releaseHtml.indexOf(`"name":"${GST_ASSET}"`);
+        if (assetIndex < 0) continue;
+        const assetFragment = releaseHtml.slice(assetIndex, assetIndex + 2000);
+        const digest = assetFragment.match(/"digest":"sha256:([a-fA-F0-9]{64})"/)?.[1]?.toLowerCase();
+        const downloadUrl = assetFragment.match(/"browser_download_url":"([^"]+)"/)?.[1];
+        if (!digest || !downloadUrl) continue;
+        assertGitHubHttps(downloadUrl);
         return {
-            tag: release.tag_name,
-            name: release.name || release.tag_name,
-            publishedAt: release.published_at,
+            tag,
+            name: tag,
+            publishedAt: '',
             assetName: GST_ASSET,
-            downloadUrl: binary.browser_download_url,
-            checksum
+            downloadUrl,
+            checksum: digest
         };
     }
-    throw new Error('No Windows x64 GST release with a SHA-256 digest was found.');
+    throw new Error('Could not find a Windows GST release with SHA-256 digest in public release pages');
+}
+
+export async function findLatestWindowsGstRelease(): Promise<GstRelease> {
+    try {
+        const response = await fetch(RELEASES_API, {
+            headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'Lampa-Windows-GST-Manager' },
+            signal: AbortSignal.timeout(15000)
+        });
+        if (response.status === 403) return findLatestWindowsGstReleaseWithoutApi();
+        if (!response.ok) throw new Error(`GitHub releases API failed (${response.status})`);
+
+        const releases = await response.json() as GitHubRelease[];
+        for (const release of releases) {
+            const binary = release.assets?.find(asset => asset.name === GST_ASSET);
+            if (!binary) continue;
+            assertGitHubHttps(binary.browser_download_url);
+            const checksum = typeof binary.digest === 'string' ? binary.digest.match(/^sha256:([a-fA-F0-9]{64})$/)?.[1]?.toLowerCase() : null;
+            if (!checksum) continue;
+            return {
+                tag: release.tag_name,
+                name: release.name || release.tag_name,
+                publishedAt: release.published_at,
+                assetName: GST_ASSET,
+                downloadUrl: binary.browser_download_url,
+                checksum
+            };
+        }
+        throw new Error('No Windows x64 GST release with a SHA-256 digest was found.');
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes('403') || message.toLowerCase().includes('rate limit')) {
+            return findLatestWindowsGstReleaseWithoutApi();
+        }
+        throw error;
+    }
 }
