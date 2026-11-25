@@ -31,7 +31,7 @@ function init(){
     SettingsApi.addParam({
         component,
         param: { name: 'gst_install', type: 'button', default: '' },
-        field: { name: 'Установить / обновить GST', description: 'Скачать Windows x64 GST-сборку с проверкой SHA-256' },
+        field: { name: 'Установить / обновить GST', description: 'Скачать GST-сборку с проверкой SHA-256' },
         onChange: async () => {
             try {
                 Noty.show('Проверяю релиз и загружаю TorrServer GST…', { time: 4000 })
