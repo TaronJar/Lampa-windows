@@ -809,7 +809,7 @@ trigger('adult_content_view', false)
 /**
  * Добовляем поля
  */
-select('jackett_url','','jacred.xyz')
+if(!Storage.get('jackett_url') && !Storage.get('jackett_url_default_migrated')){\n    Storage.set('jackett_url','jacred.xyz')\n    Storage.set('jackett_url_default_migrated',true)\n}\n\nselect('jackett_url','','jacred.xyz')
 select('jackett_key','','')
 select('jackett_url_two','','')
 select('jackett_key_two','','')
