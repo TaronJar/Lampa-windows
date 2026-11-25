@@ -30,11 +30,47 @@ function readChecksum(text: string, assetName: string): string | null {
 }
 
 /** Finds the newest release that actually publishes the GST Windows x64 asset. */
+async function findLatestWindowsGstReleaseViaLatestRedirect(): Promise<GstRelease> {
+    // GitHub's unauthenticated REST API can return 403 when its shared rate limit is exhausted.
+    // The /releases/latest redirect and direct release asset URLs do not require API quota.
+    const latestResponse = await fetch('https://github.com/YouROK/TorrServer/releases/latest', {
+        redirect: 'follow',
+        signal: AbortSignal.timeout(15000),
+        headers: { 'User-Agent': 'Lampa-Windows-GST-Manager' }
+    });
+    if (!latestResponse.ok) throw new Error(`GitHub latest release page failed (${latestResponse.status})`);
+    const finalUrl = latestResponse.url;
+    assertGitHubHttps(finalUrl);
+    const tag = decodeURIComponent(new URL(finalUrl).pathname.split('/').filter(Boolean).pop() || '');
+    if (!tag || tag === 'latest') throw new Error('Could not resolve latest TorrServer release tag');
+
+    const checksumUrl = `https://github.com/YouROK/TorrServer/releases/download/${encodeURIComponent(tag)}/${CHECKSUM_ASSET}`;
+    const checksumResponse = await fetch(checksumUrl, {
+        redirect: 'follow',
+        signal: AbortSignal.timeout(15000),
+        headers: { 'User-Agent': 'Lampa-Windows-GST-Manager' }
+    });
+    if (!checksumResponse.ok) throw new Error(`Release checksum download failed (${checksumResponse.status})`);
+    if (checksumResponse.url) assertGitHubHttps(checksumResponse.url, true);
+    const checksum = readChecksum(await checksumResponse.text(), GST_ASSET);
+    if (!checksum) throw new Error('Latest release checksum file does not contain the Windows GST asset');
+
+    return {
+        tag,
+        name: tag,
+        publishedAt: '',
+        assetName: GST_ASSET,
+        downloadUrl: `https://github.com/YouROK/TorrServer/releases/download/${encodeURIComponent(tag)}/${GST_ASSET}`,
+        checksum
+    };
+}
+
 export async function findLatestWindowsGstRelease(): Promise<GstRelease> {
     const response = await fetch(RELEASES_API, {
         headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'Lampa-Windows-GST-Manager' },
         signal: AbortSignal.timeout(15000)
     });
+    if (response.status === 403) return findLatestWindowsGstReleaseViaLatestRedirect();
     if (!response.ok) throw new Error(`GitHub releases API failed (${response.status})`);
 
     const releases = await response.json() as GitHubRelease[];
