@@ -7,7 +7,7 @@ import { Transform } from 'node:stream';
 import { spawn } from 'node:child_process';
 
 const RELEASE_API = 'https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/tags/latest';
-const ASSET_NAME = 'ffmpeg-master-latest-win64-gpl.zip';
+const ASSET_NAME = 'ffmpeg-master-latest-win64-lgpl.zip';
 const MAX_DOWNLOAD = 220 * 1024 * 1024;
 
 export interface FfmpegInstallResult { ffmpegPath: string; ffprobePath: string; version: string }
@@ -89,6 +89,8 @@ export async function installFfmpeg(userDataPath: string): Promise<FfmpegInstall
         const ffmpeg = await findBinary(extracted, 'ffmpeg.exe');
         const ffprobe = await findBinary(extracted, 'ffprobe.exe');
         if (!ffmpeg || !ffprobe) throw new Error('FFmpeg archive is missing ffmpeg.exe or ffprobe.exe.');
+        await validateExecutable(ffmpeg);
+        await validateExecutable(ffprobe);
         const installTemp = join(staging, 'payload');
         await mkdir(installTemp, { recursive: true });
         const ffmpegTemp = join(installTemp, 'ffmpeg.exe');
