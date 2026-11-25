@@ -165,7 +165,7 @@ function init(){
             listener.send('mouse_rewind',{method: 'move',time: Html.elem('time'), percent: percent(e)})
             const vid = Video.video()
             let source = vid && (vid.currentSrc || vid.src)
-            if(source && !/^https?:\\/\\//i.test(source)) source = Player.playdata() && Player.playdata().url
+            if(source && !/^https?:\/\//i.test(source)) source = Player.playdata() && Player.playdata().url
             const duration = Number(vid && vid.duration)
             const pct = Math.max(0, Math.min(1, percent(e)))
             const seconds = Math.floor(duration * pct)
@@ -177,7 +177,7 @@ function init(){
                 if(key !== previewLastKey){
                     previewLastKey = key
                     preview.addClass('hide')
-                    clearTimeout(previewTimer
+                    clearTimeout(previewTimer)
                     previewRequest++
                     const requestId = previewRequest
                     previewTimer = setTimeout(async ()=>{

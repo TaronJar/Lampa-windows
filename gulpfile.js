@@ -49,13 +49,13 @@ var docFolder = './build/doc/';
 
 var isDebugEnabled = false;
 
-function merge(done) {
+function merge() {
     let plugins = [babel({
         babelHelpers: 'bundled',
         presets: ['@babel/preset-env']
     }), commonjs(), nodeResolve(), worker()]
 
-    rollup({
+    return rollup({
         // Point to the entry file
         input: srcFolder+"app.js",
 
@@ -91,7 +91,6 @@ function merge(done) {
       // Where to send the output file
       .pipe(dest(dstFolder));
       
-    done();
 }
 
 function bubbleFile(name){
