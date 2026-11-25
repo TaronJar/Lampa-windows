@@ -60,6 +60,24 @@ async function findBinary(root: string, name: string): Promise<string | undefine
     return undefined;
 }
 
+function validateExecutable(executable: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const child = spawn(executable, ['-version'], { windowsHide: true, stdio: 'ignore' });
+        const timer = setTimeout(() => {
+            child.kill();
+            reject(new Error('FFmpeg executable validation timed out.'));
+        }, 10000);
+        child.once('error', error => {
+            clearTimeout(timer);
+            reject(error);
+        });
+        child.once('exit', code => {
+            clearTimeout(timer);
+            code === 0 ? resolve() : reject(new Error('FFmpeg executable failed its version check.'));
+        });
+    });
+}
+
 function runPowerShellExtract(zipPath: string, destination: string): Promise<void> {
     return new Promise((resolve, reject) => {
         const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', 'Expand-Archive -LiteralPath $args[0] -DestinationPath $args[1] -Force', zipPath, destination], { windowsHide: true, stdio: 'ignore' });
