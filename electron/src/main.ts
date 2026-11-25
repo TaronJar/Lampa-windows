@@ -51,6 +51,14 @@ function createWindow(): void {
         }
     });
 
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+        const devToolsShortcut = input.key === 'F12' || (input.control && input.shift && input.key.toLowerCase() === 'i');
+        if (devToolsShortcut) {
+            event.preventDefault();
+            mainWindow?.webContents.openDevTools({ mode: 'detach' });
+        }
+    });
+
     mainWindow.loadURL('http://localhost:3000');
     mainWindow.on('closed', () => { mainWindow = null; });
 }
