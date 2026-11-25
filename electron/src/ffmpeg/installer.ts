@@ -26,7 +26,9 @@ async function fetchJson(url: string): Promise<any> {
     return response.json();
 }
 
-export type FfmpegProgress = { phase: 'metadata' | 'download' | 'verify' | 'extract' | 'validate' | 'install' | 'complete'; percent?: number; detail?: string; bytes?: number; total?: number };\n\nasync function downloadVerified(url: string, destination: string, expectedDigest: string, onProgress?: (progress: FfmpegProgress) => void, total?: number): Promise<void> {
+export type FfmpegProgress = { phase: 'metadata' | 'download' | 'verify' | 'extract' | 'validate' | 'install' | 'complete'; percent?: number; detail?: string; bytes?: number; total?: number };
+
+async function downloadVerified(url: string, destination: string, expectedDigest: string, onProgress?: (progress: FfmpegProgress) => void, total?: number): Promise<void> {
     trustedHttps(url);
     const response = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(180000) });
     if (!response.ok || !response.body) throw new Error(`FFmpeg download failed: HTTP ${response.status}`);
