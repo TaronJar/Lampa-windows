@@ -72,7 +72,7 @@ function Main(){
         }).not('[data-static]').unbind('hover:enter').on('hover:enter',(event)=>{
             this.render().detach()
 
-            this.onCreate($(event.target).data('component'))
+            this.onCreate($(event.target).closest('.settings-folder').data('component'))
         })
     }
 
