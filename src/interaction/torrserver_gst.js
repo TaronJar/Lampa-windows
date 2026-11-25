@@ -98,15 +98,14 @@ function connectGstLink(url){
     const key = activeLinkKey()
     const current = Storage.get(key, '')
 
-    if(!backup && current !== url){
-        backup = { key, value: current, gstUrl: url }
+    if(!backup){
+        backup = { key, value: current, gstUrl: url, gstEnabled: Storage.get('torrserver_gts', false) }
     }
-    if(backup){
-        backup.gstUrl = url
-        Storage.set(GST_BACKUP_KEY, backup)
-    }
+    backup.gstUrl = url
+    Storage.set(GST_BACKUP_KEY, backup)
 
     Storage.set(key, url)
+    Storage.set('torrserver_gts', true)
 }
 
 function restorePreviousLink(){
@@ -117,6 +116,7 @@ function restorePreviousLink(){
     if(Storage.get(backup.key, '') === (backup.gstUrl || 'http://127.0.0.1:8090')){
         Storage.set(backup.key, backup.value)
     }
+    if(typeof backup.gstEnabled !== 'undefined') Storage.set('torrserver_gts', backup.gstEnabled)
     Storage.erase(GST_BACKUP_KEY)
 }
 
