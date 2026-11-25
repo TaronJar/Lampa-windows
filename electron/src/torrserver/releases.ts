@@ -31,38 +31,45 @@ function readChecksum(text: string, assetName: string): string | null {
 
 /** Finds the newest release that actually publishes the GST Windows x64 asset. */
 async function findLatestWindowsGstReleaseViaLatestRedirect(): Promise<GstRelease> {
-    // GitHub's unauthenticated REST API can return 403 when its shared rate limit is exhausted.
-    // The /releases/latest redirect and direct release asset URLs do not require API quota.
-    const latestResponse = await fetch('https://github.com/YouROK/TorrServer/releases/latest', {
-        redirect: 'follow',
+    // The /releases/latest shortcut may point to a release without GST assets (e.g. Silo).
+    // When API rate-limited, scrape only the visible release asset links and select the newest
+    // release page that explicitly publishes the Windows GST executable.
+    const page = await fetch('https://github.com/YouROK/TorrServer/releases', {
         signal: AbortSignal.timeout(15000),
         headers: { 'User-Agent': 'Lampa-Windows-GST-Manager' }
     });
-    if (!latestResponse.ok) throw new Error(`GitHub latest release page failed (${latestResponse.status})`);
-    const finalUrl = latestResponse.url;
-    assertGitHubHttps(finalUrl);
-    const tag = decodeURIComponent(new URL(finalUrl).pathname.split('/').filter(Boolean).pop() || '');
-    if (!tag || tag === 'latest') throw new Error('Could not resolve latest TorrServer release tag');
+    if (!page.ok) throw new Error(`GitHub releases page failed (${page.status})`);
+    const html = await page.text();
+    const assetPattern = /\\/YouROK\\/TorrServer\\/releases\\/download\\/([^\\/"'<>]+)\\/TorrServer-gst-windows-amd64\\.exe/g;
+    const tags: string[] = [];
+    for (const match of html.matchAll(assetPattern)) {
+        const tag = decodeURIComponent(match[1]);
+        if (!tags.includes(tag)) tags.push(tag);
+    }
+    if (!tags.length) throw new Error('No Windows GST asset link found on releases page');
 
-    const checksumUrl = `https://github.com/YouROK/TorrServer/releases/download/${encodeURIComponent(tag)}/${CHECKSUM_ASSET}`;
-    const checksumResponse = await fetch(checksumUrl, {
-        redirect: 'follow',
-        signal: AbortSignal.timeout(15000),
-        headers: { 'User-Agent': 'Lampa-Windows-GST-Manager' }
-    });
-    if (!checksumResponse.ok) throw new Error(`Release checksum download failed (${checksumResponse.status})`);
-    if (checksumResponse.url) assertGitHubHttps(checksumResponse.url, true);
-    const checksum = readChecksum(await checksumResponse.text(), GST_ASSET);
-    if (!checksum) throw new Error('Latest release checksum file does not contain the Windows GST asset');
+    for (const tag of tags) {
+        const checksumUrl = `https://github.com/YouROK/TorrServer/releases/download/${encodeURIComponent(tag)}/${CHECKSUM_ASSET}`;
+        const checksumResponse = await fetch(checksumUrl, {
+            redirect: 'follow',
+            signal: AbortSignal.timeout(15000),
+            headers: { 'User-Agent': 'Lampa-Windows-GST-Manager' }
+        });
+        if (!checksumResponse.ok) continue;
+        if (checksumResponse.url) assertGitHubHttps(checksumResponse.url, true);
+        const checksum = readChecksum(await checksumResponse.text(), GST_ASSET);
+        if (!checksum) continue;
 
-    return {
-        tag,
-        name: tag,
-        publishedAt: '',
-        assetName: GST_ASSET,
-        downloadUrl: `https://github.com/YouROK/TorrServer/releases/download/${encodeURIComponent(tag)}/${GST_ASSET}`,
-        checksum
-    };
+        return {
+            tag,
+            name: tag,
+            publishedAt: '',
+            assetName: GST_ASSET,
+            downloadUrl: `https://github.com/YouROK/TorrServer/releases/download/${encodeURIComponent(tag)}/${GST_ASSET}`,
+            checksum
+        };
+    }
+    throw new Error('No Windows x64 GST release with a matching SHA-256 checksum was found.');
 }
 
 export async function findLatestWindowsGstRelease(): Promise<GstRelease> {
