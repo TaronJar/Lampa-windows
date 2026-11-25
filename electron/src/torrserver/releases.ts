@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto';
-
 const RELEASES_API = 'https://api.github.com/repos/YouROK/TorrServer/releases?per_page=100';
 const GST_ASSET = 'TorrServer-gst-windows-amd64.exe';
 const CHECKSUM_ASSET = 'SHA256SUMS.txt';
