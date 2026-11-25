@@ -31,31 +31,50 @@ function readChecksum(text: string, assetName: string): string | null {
 
 /** Finds the newest release that actually publishes the GST Windows x64 asset. */
 async function findLatestWindowsGstReleaseWithoutApi(): Promise<GstRelease> {
-    // GitHub API rate limit fallback: resolve the latest tag via redirect, then read
-    // embedded release asset metadata (including digest) from that exact release page.
-    const latest = await fetch('https://github.com/YouROK/TorrServer/releases/latest', {
-        redirect: 'follow',
+    // Releases page lists all tags, including Silo releases which may not publish GST binaries.
+    // Walk tags in page order and select the first release containing the Windows GST asset + digest.
+    const indexPage = await fetch('https://github.com/YouROK/TorrServer/releases', {
         signal: AbortSignal.timeout(15000),
         headers: { 'User-Agent': 'Lampa-Windows-GST-Manager' }
     });
-    if (!latest.ok) throw new Error(`GitHub latest release page failed (${latest.status})`);
-    const tag = decodeURIComponent(new URL(latest.url).pathname.split('/').filter(Boolean).pop() || '');
-    if (!tag || tag === 'latest') throw new Error('Could not resolve latest TorrServer release tag');
+    if (!indexPage.ok) throw new Error(`GitHub releases page failed (${indexPage.status})`);
+    const html = await indexPage.text();
+    const marker = 'releases/tag/';
+    const tags: string[] = [];
+    let cursor = 0;
+    while ((cursor = html.indexOf(marker, cursor)) !== -1) {
+        const tagStart = cursor + marker.length;
+        let tagEnd = tagStart;
+        while (tagEnd < html.length && !['"', "'", '>', '?', '#', ' ', '\\'].includes(html[tagEnd])) tagEnd++;
+        const tag = html.slice(tagStart, tagEnd);
+        if (tag && !tags.includes(tag)) tags.push(tag);
+        cursor = tagEnd + 1;
+    }
 
-    const page = await fetch(`https://github.com/YouROK/TorrServer/releases/tag/${encodeURIComponent(tag)}`, {
-        signal: AbortSignal.timeout(15000),
-        headers: { 'User-Agent': 'Lampa-Windows-GST-Manager' }
-    });
-    if (!page.ok) throw new Error(`GitHub release page failed (${page.status})`);
-    const html = await page.text();
-    const assetIndex = html.indexOf(`"name":"${GST_ASSET}"`);
-    if (assetIndex < 0) throw new Error(`Latest release ${tag} has no Windows GST asset`);
-    const fragment = html.slice(assetIndex, assetIndex + 3000);
-    const digest = fragment.match(/"digest":"sha256:([a-fA-F0-9]{64})"/)?.[1]?.toLowerCase();
-    const downloadUrl = fragment.match(/"browser_download_url":"([^"]+)"/)?.[1];
-    if (!digest || !downloadUrl) throw new Error(`Could not extract Windows GST digest/link from release ${tag}`);
-    assertGitHubHttps(downloadUrl);
-    return { tag, name: tag, publishedAt: '', assetName: GST_ASSET, downloadUrl, checksum: digest };
+    for (const tag of tags) {
+        const page = await fetch(`https://github.com/YouROK/TorrServer/releases/tag/${encodeURIComponent(tag)}`, {
+            signal: AbortSignal.timeout(15000),
+            headers: { 'User-Agent': 'Lampa-Windows-GST-Manager' }
+        });
+        if (!page.ok) continue;
+        const releaseHtml = await page.text();
+        const assetIndex = releaseHtml.indexOf(`"name":"${GST_ASSET}"`);
+        if (assetIndex < 0) continue;
+        const fragment = releaseHtml.slice(assetIndex, assetIndex + 3000);
+        const digest = fragment.match(/"digest":"sha256:([a-fA-F0-9]{64})"/)?.[1]?.toLowerCase();
+        const downloadUrl = fragment.match(/"browser_download_url":"([^"]+)"/)?.[1];
+        if (!digest || !downloadUrl) continue;
+        assertGitHubHttps(downloadUrl);
+        return {
+            tag,
+            name: tag,
+            publishedAt: '',
+            assetName: GST_ASSET,
+            downloadUrl,
+            checksum: digest
+        };
+    }
+    throw new Error('No Windows GST release with SHA-256 digest found among published release tags');
 }
 
 export async function findLatestWindowsGstRelease(): Promise<GstRelease> {
