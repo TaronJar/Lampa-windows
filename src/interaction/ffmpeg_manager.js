@@ -2,18 +2,21 @@ import SettingsApi from './settings/api'
 import Noty from './noty'
 
 function init(){
-    const bridge = window.lampaFfmpegPreview
-    if(!bridge || typeof bridge.status !== 'function') return
-
     const component = 'ffmpeg_manager'
     const icon = '<svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="18" r="15" fill="none" stroke="white" stroke-width="2"/><path d="M20 5 11 19h7l-3 12 10-16h-7z" fill="white"/></svg>'
-    SettingsApi.addComponent({ component, icon, name: 'FFmpeg' })
+    // Register the settings section even if the Electron preload bridge is unavailable.
+    SettingsApi.addComponent({ component, icon, name: 'FFmpeg', after: 'torrserver_gst' })
 
     SettingsApi.addParam({
         component,
         param: { name: 'ffmpeg_status', type: 'button', default: '' },
         field: { name: 'Проверить FFmpeg / FFprobe', description: 'Проверка установки и версии обоих компонентов' },
         onChange: async () => {
+            const bridge = window.lampaFfmpegPreview
+            if(!bridge || typeof bridge.status !== 'function'){
+                showError('Модуль Electron preload недоступен')
+                return
+            }
             try { Noty.show(await statusText(bridge), { time: 8000 }) }
             catch(error) { showError(error) }
         }
@@ -24,6 +27,11 @@ function init(){
         param: { name: 'ffmpeg_install', type: 'button', default: '' },
         field: { name: 'Установить / переустановить FFmpeg', description: 'Загрузка LGPL-сборки, распаковка и проверка ffmpeg.exe и ffprobe.exe' },
         onChange: async () => {
+            const bridge = window.lampaFfmpegPreview
+            if(!bridge || typeof bridge.install !== 'function'){
+                showError('Модуль Electron preload недоступен')
+                return
+            }
             try {
                 const removeProgress = bridge.onProgress ? bridge.onProgress(updateInstallProgress) : () => {}
                 showInstallProgress('Подготовка установки FFmpeg', null)
