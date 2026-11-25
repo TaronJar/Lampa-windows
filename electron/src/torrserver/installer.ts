@@ -9,9 +9,12 @@ import type { GstRelease } from './releases';
 const MAX_BYTES = 200 * 1024 * 1024;
 export interface InstallResult { executablePath: string; version: string; backupPath?: string }
 
-function trustedUrl(raw: string): void {
+function trustedUrl(raw: string, allowRedirectHosts = false): void {
     const parsed = new URL(raw);
-    if (parsed.protocol !== 'https:' || parsed.hostname !== 'github.com') throw new Error('Unsafe download URL blocked.');
+    const allowedHosts = ['github.com', 'release-assets.githubusercontent.com', 'objects.githubusercontent.com'];
+    if (parsed.protocol !== 'https:' || !(allowRedirectHosts ? allowedHosts : ['github.com']).includes(parsed.hostname)) {
+        throw new Error('Unsafe download URL blocked.');
+    }
 }
 
 export async function installVerifiedRelease(release: GstRelease, directory: string): Promise<InstallResult> {
@@ -27,7 +30,7 @@ export async function installVerifiedRelease(release: GstRelease, directory: str
     try {
         const response = await fetch(release.downloadUrl, { redirect: 'follow', signal: AbortSignal.timeout(120000) });
         if (!response.ok || !response.body) throw new Error(`Download failed: HTTP ${response.status}`);
-        if (response.url && new URL(response.url).protocol !== 'https:') throw new Error('Download redirected to an unsafe protocol.');
+        if (response.url) trustedUrl(response.url, true);
         const meter = new Transform({
             transform(chunk: Buffer, _enc, callback) {
                 bytes += chunk.length;
