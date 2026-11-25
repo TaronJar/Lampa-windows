@@ -41,6 +41,7 @@ function requireTrustedSender(event: IpcMainInvokeEvent): GstManager {
 
 function registerGstIpc(): void {
     ipcMain.handle('torrserver-gst:status', (event) => requireTrustedSender(event).status());
+    ipcMain.handle('torrserver-gst:diagnostics', (event) => requireTrustedSender(event).diagnostics());
     ipcMain.handle('torrserver-gst:latest', (event) => requireTrustedSender(event).findLatest());
     ipcMain.handle('torrserver-gst:install', (event) => {
         const manager = requireTrustedSender(event);
