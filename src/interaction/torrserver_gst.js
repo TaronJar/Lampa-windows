@@ -78,17 +78,27 @@ const GST_AUTOSTART_KEY = 'torrserver_gst_autostart'
 
 async function autoConnectGst(bridge){
     try {
-        const initial = await bridge.status()
         const enabled = Storage.get(GST_AUTOSTART_KEY, true)
-        if(!initial.installed || !enabled){
-            if(!initial.running) restorePreviousLink()
+        // Renderer storage is the user's actual preference. Sync it to Electron
+        // main-process persistence so startup and UI cannot disagree.
+        await bridge.setAutostart(enabled)
+
+        const initial = await bridge.status()
+        if(!initial.installed) {
+            restorePreviousLink()
+            return
+        }
+
+        if(!enabled) {
+            // Main process may have started GST before renderer storage was read.
+            // If the user opted out, stop it and restore the regular server.
+            if(initial.running) await bridge.stop()
+            restorePreviousLink()
             return
         }
 
         const status = initial.running ? initial : await bridge.start()
-        if(status.running){
-            connectGstLink(status.url)
-        }
+        if(status.running) connectGstLink(status.url)
     } catch (error) {
         // Auto-start is best-effort; leave the regular app usable if GST
         // cannot start (for example, when another process owns the port).
