@@ -254,7 +254,6 @@ function task(call){
             black_list.push('lipp.xyz')
             black_list.push('llpp.xyz')
             black_list.push('scabrum.github.io')
-            black_list.push('bylampa.github.io')
             black_list.push('tinyurl.com')
 
             // Stupid people :(
