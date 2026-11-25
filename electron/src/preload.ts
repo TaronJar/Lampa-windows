@@ -9,7 +9,8 @@ export interface GstBridge {
     setAutostart(enabled: boolean): Promise<boolean>;
 }
 
-contextBridge.exposeInMainWorld('lampaFfmpegPreview', {\n    status: () => ipcRenderer.invoke('lampa-ffmpeg:status'),
+contextBridge.exposeInMainWorld('lampaFfmpegPreview', {
+    status: () => ipcRenderer.invoke('lampa-ffmpeg:status'),
     install: () => ipcRenderer.invoke('lampa-ffmpeg:install'),
     frame: (url: string, seconds: number): Promise<string | null> => ipcRenderer.invoke('lampa-ffmpeg:preview', url, seconds)
 });
