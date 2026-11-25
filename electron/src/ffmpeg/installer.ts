@@ -82,10 +82,54 @@ function validateExecutable(executable: string): Promise<void> {
 
 function runPowerShellExtract(zipPath: string, destination: string): Promise<void> {
     return new Promise((resolve, reject) => {
-        const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', 'Expand-Archive -LiteralPath $args[0] -DestinationPath $args[1] -Force', zipPath, destination], { windowsHide: true, stdio: 'ignore' });
-        const timer = setTimeout(() => { child.kill(); reject(new Error('FFmpeg archive extraction timed out.')); }, 120000);
-        child.once('error', error => { clearTimeout(timer); reject(error); });
-        child.once('exit', code => { clearTimeout(timer); code === 0 ? resolve() : reject(new Error(`FFmpeg archive extraction failed (code ${code}).`)); });
+        const child = spawn(
+            'powershell.exe',
+            [
+                '-NoProfile',
+                '-NonInteractive',
+                '-ExecutionPolicy',
+                'Bypass',
+                '-Command',
+                "$ErrorActionPreference = 'Stop'; Expand-Archive -LiteralPath $env:FFMPEG_ZIP -DestinationPath $env:FFMPEG_DEST -Force"
+            ],
+            {
+                windowsHide: true,
+                stdio: ['ignore', 'pipe', 'pipe'],
+                env: {
+                    ...process.env,
+                    FFMPEG_ZIP: zipPath,
+                    FFMPEG_DEST: destination
+                }
+            }
+        );
+
+        let stdout = '';
+        let stderr = '';
+
+        child.stdout?.on('data', data => stdout += data.toString());
+        child.stderr?.on('data', data => stderr += data.toString());
+
+        const timer = setTimeout(() => {
+            child.kill();
+            reject(new Error('FFmpeg archive extraction timed out.'));
+        }, 120000);
+
+        child.once('error', error => {
+            clearTimeout(timer);
+            reject(error);
+        });
+
+        child.once('exit', code => {
+            clearTimeout(timer);
+
+            if (code === 0) {
+                resolve();
+            } else {
+                reject(new Error(
+                    `FFmpeg archive extraction failed (code ${code}).\n${stderr}\n${stdout}`
+                ));
+            }
+        });
     });
 }
 

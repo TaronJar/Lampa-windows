@@ -22,6 +22,7 @@ import listener from './panel/listener'
 import {languageName, codecName, channelLayout} from './track_info'
 
 let state
+let preview_source = ""
 let panel_visible = false
 let timeline_last = {
     position: 0,
@@ -164,7 +165,7 @@ function init(){
         if(!Platform.screen('mobile')) {
             listener.send('mouse_rewind',{method: 'move',time: Html.elem('time'), percent: percent(e)})
             const vid = Video.video()
-            let source = vid && (vid.currentSrc || vid.src)
+            let source = preview_source || (vid && (vid.currentSrc || vid.src))
             if(source && !/^https?:\/\//i.test(source)) source = Player.playdata() && Player.playdata().url
             const duration = Number(vid && vid.duration)
             const pct = Math.max(0, Math.min(1, percent(e)))
@@ -689,11 +690,13 @@ function destroy(){
  * Получить html
  * @returns {object}
  */
+function setPreviewSource(src){ preview_source = src || "" }
 function render(){
     return Html.render()
 }
 
 export default {
+    setPreviewSource,
     init,
     listener,
     render,
