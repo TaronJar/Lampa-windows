@@ -36,6 +36,12 @@ let html = `<div>
         </div>
         <div class="settings-folder__name">#{settings_main_torrserver}</div>
     </div>
+    <div class="settings-folder selector" data-component="torrserver_gst">
+        <div class="settings-folder__icon">
+            <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="30" height="30" rx="5" fill="none" stroke="white" stroke-width="2.5"/><path d="M11 10h14v3H11zm0 6h14v3H11zm0 6h8v3h-8z" fill="white"/></svg>
+        </div>
+        <div class="settings-folder__name">TorrServer GST (Windows)</div>
+    </div>
     <div class="settings-folder selector" data-component="tmdb">
         <div class="settings-folder__icon">
             <svg xmlns="http://www.w3.org/2000/svg" height="32" viewBox="0 0 32 32">
