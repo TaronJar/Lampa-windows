@@ -10,7 +10,7 @@ function isTrustedSender(event: IpcMainInvokeEvent): boolean {
     const raw = event.senderFrame?.url || '';
     try {
         const url = new URL(raw);
-        return url.protocol === 'file:' || (url.protocol === 'http:' && (url.hostname === 'localhost' || url.hostname === '127.0.0.1') && url.port === '3000');
+        return url.protocol === 'http:' && (url.origin === 'http://localhost:3000' || url.origin === 'http://127.0.0.1:3000');
     } catch {
         return false;
     }
