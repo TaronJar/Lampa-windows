@@ -4,6 +4,7 @@ import { GstManager } from './torrserver/manager';
 
 let mainWindow: BrowserWindow | null = null;
 let gstManager: GstManager | null = null;
+let quittingAfterGstStop = false;
 
 function isTrustedSender(event: IpcMainInvokeEvent): boolean {
     const raw = event.senderFrame?.url || '';
@@ -31,6 +32,8 @@ function registerGstIpc(): void {
         }
         return manager.installLatest();
     });
+    ipcMain.handle('torrserver-gst:start', (event) => requireTrustedSender(event).start());
+    ipcMain.handle('torrserver-gst:stop', (event) => requireTrustedSender(event).stop());
 }
 
 function createWindow(): void {
@@ -59,6 +62,15 @@ app.whenReady().then(() => {
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+});
+
+app.on('before-quit', (event) => {
+    if (quittingAfterGstStop || !gstManager) return;
+    event.preventDefault();
+    void gstManager.stop().finally(() => {
+        quittingAfterGstStop = true;
+        app.quit();
     });
 });
 
