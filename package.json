@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "electron:compile": "tsc -p electron/tsconfig.json",
-    "electron:dev": "npm run electron:compile && electron electron/dist/main.ts",
+    "electron:dev": "npm run electron:compile && electron electron/dist/main.js",
     "start": "gulp",
     "debug": "gulp debug",
     "test": "vitest",
