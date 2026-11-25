@@ -175,7 +175,8 @@ function init(){
                 const key = source + '|' + seconds
                 if(key !== previewLastKey){
                     previewLastKey = key
-                    clearTimeout(previewTimer)
+                    preview.addClass('hide')
+                    clearTimeout(previewTimer
                     previewRequest++
                     const requestId = previewRequest
                     previewTimer = setTimeout(async ()=>{
