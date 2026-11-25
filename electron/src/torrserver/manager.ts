@@ -23,28 +23,14 @@ export class GstManager {
 
     constructor(private readonly userDataPath: string) {}
 
-    get installDirectory(): string {
-        return join(this.userDataPath, 'torrserver', 'gst');
-    }
-
-    get executablePath(): string {
-        return join(this.installDirectory, 'TorrServer-gst-windows-amd64.exe');
-    }
-
-    get dataDirectory(): string {
-        return join(this.userDataPath, 'torrserver', 'data');
-    }
-
-    get logPath(): string {
-        return join(this.userDataPath, 'torrserver', 'torrserver.log');
-    }
-
+    get installDirectory(): string { return join(this.userDataPath, 'torrserver', 'gst'); }
+    get executablePath(): string { return join(this.installDirectory, 'TorrServer-gst-windows-amd64.exe'); }
+    get dataDirectory(): string { return join(this.userDataPath, 'torrserver', 'data'); }
+    get logPath(): string { return join(this.userDataPath, 'torrserver', 'torrserver.log'); }
     get port(): number { return DEFAULT_PORT; }
     get url(): string { return `http://127.0.0.1:${DEFAULT_PORT}`; }
 
-    async findLatest(): Promise<GstRelease> {
-        return findLatestWindowsGstRelease();
-    }
+    async findLatest(): Promise<GstRelease> { return findLatestWindowsGstRelease(); }
 
     async installLatest(): Promise<InstallResult> {
         if (this.isRunning()) throw new Error('Stop the managed TorrServer GST process before updating it.');
@@ -54,57 +40,39 @@ export class GstManager {
 
     async status(): Promise<GstManagerStatus> {
         let installed = false;
-        try { await access(this.executablePath); installed = true; }
-        catch { installed = false; }
-        return {
-            installed,
-            running: this.isRunning(),
-            executablePath: this.executablePath,
-            port: this.port,
-            url: this.url,
-            pid: this.child?.pid
-        };
+        try { await access(this.executablePath); installed = true; } catch { installed = false; }
+        return { installed, running: this.isRunning(), executablePath: this.executablePath, port: this.port, url: this.url, pid: this.child?.pid };
     }
 
     async start(): Promise<GstManagerStatus> {
         if (this.starting) return this.starting;
         if (this.isRunning()) return this.status();
         this.starting = this.startInternal();
-        try { return await this.starting; }
-        finally { this.starting = null; }
+        try { return await this.starting; } finally { this.starting = null; }
     }
 
     private async startInternal(): Promise<GstManagerStatus> {
-        if (process.platform !== 'win32' || process.arch !== 'x64') {
-            throw new Error('Managed TorrServer GST runtime is supported on Windows x64 only.');
-        }
+        if (process.platform !== 'win32' || process.arch !== 'x64') throw new Error('Managed TorrServer GST runtime is supported on Windows x64 only.');
         await access(this.executablePath);
         await mkdir(this.dataDirectory, { recursive: true });
 
-        // Refuse to attach to or overwrite an existing service on the expected player port.
-        const occupied = await this.isPortOccupied();
-        if (occupied) throw new Error(`Port ${this.port} is already in use. Existing processes were left untouched.`);
+        if (await this.isPortOccupied()) throw new Error(`Port ${this.port} is already in use. Existing processes were left untouched.`);
 
         const child = spawn(this.executablePath, [
-            '--port', String(this.port),
-            '--ip', '127.0.0.1',
-            '--path', this.dataDirectory,
-            '--logpath', this.logPath
-        ], {
-            cwd: this.installDirectory,
-            windowsHide: true,
-            stdio: 'ignore'
-        });
+            '--port', String(this.port), '--ip', '127.0.0.1',
+            '--path', this.dataDirectory, '--logpath', this.logPath
+        ], { cwd: this.installDirectory, windowsHide: true, stdio: 'ignore' });
         this.child = child;
-        child.once('error', (err) => {
+        let launchError: Error | null = null;
+        child.once('error', err => {
+            launchError = err;
             if (this.child === child) this.child = null;
-            // Keep the error on the child; startup polling will observe it as not running.
-            child.emit('manager-error', err);
         });
         child.once('exit', () => { if (this.child === child) this.child = null; });
 
         const deadline = Date.now() + START_TIMEOUT_MS;
         while (Date.now() < deadline) {
+            if (launchError) throw new Error(`Unable to launch TorrServer GST: ${launchError.message}`);
             if (child.exitCode !== null || child.signalCode !== null) {
                 if (this.child === child) this.child = null;
                 throw new Error('TorrServer GST exited before becoming ready.');
@@ -113,10 +81,7 @@ export class GstManager {
             await new Promise(resolve => setTimeout(resolve, 350));
         }
 
-        if (this.child === child) {
-            child.kill();
-            this.child = null;
-        }
+        if (this.child === child) { child.kill(); this.child = null; }
         throw new Error('TorrServer GST did not pass the GST health check in time.');
     }
 
@@ -126,27 +91,24 @@ export class GstManager {
             if (this.child === child) this.child = null;
             return { stopped: true };
         }
-        child.kill();
-        const stopped = await new Promise<boolean>(resolve => {
+        const stoppedPromise = new Promise<boolean>(resolve => {
             const timeout = setTimeout(() => resolve(false), STOP_TIMEOUT_MS);
             child.once('exit', () => { clearTimeout(timeout); resolve(true); });
         });
+        child.kill();
+        const stopped = await stoppedPromise;
         if (stopped && this.child === child) this.child = null;
         return { stopped };
     }
 
-    private isRunning(): boolean {
-        return !!this.child && this.child.exitCode === null && this.child.signalCode === null;
-    }
+    private isRunning(): boolean { return !!this.child && this.child.exitCode === null && this.child.signalCode === null; }
 
     private async isPortOccupied(): Promise<boolean> {
         const net = await import('node:net');
         return new Promise(resolve => {
             const server = net.createServer();
             server.once('error', () => resolve(true));
-            server.listen(this.port, '127.0.0.1', () => {
-                server.close(() => resolve(false));
-            });
+            server.listen(this.port, '127.0.0.1', () => server.close(() => resolve(false)));
         });
     }
 
@@ -156,8 +118,6 @@ export class GstManager {
             if (!response.ok) return false;
             const body: unknown = await response.json();
             return !!body && typeof body === 'object' && ('found' in body || 'available' in body || 'works' in body);
-        } catch {
-            return false;
-        }
+        } catch { return false; }
     }
 }
