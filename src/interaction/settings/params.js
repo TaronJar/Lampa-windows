@@ -769,7 +769,7 @@ trigger('background',true)
 trigger('torrserver_savedb',false)
 trigger('torrserver_preload', true)
 trigger('player_torrent_gst_warning', true)
-trigger('parser_use',false)
+trigger('parser_use',true)
 trigger('cloud_use',false)
 trigger('account_use',false)
 trigger('torrserver_auth',false)
@@ -809,7 +809,7 @@ trigger('adult_content_view', false)
 /**
  * Добовляем поля
  */
-select('jackett_url','','')
+select('jackett_url','','jacred.xyz')
 select('jackett_key','','')
 select('jackett_url_two','','')
 select('jackett_key_two','','')
