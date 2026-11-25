@@ -40,6 +40,13 @@ function get(){
 function modify(){
     let list = Storage.get('plugins','[]')
 
+    // Install ByLampa Store by default, unless explicitly removed by user
+    const store_url = 'https://bylampa.github.io/addon.js'
+    const removed = Storage.get('plugins_auto_removed','[]')
+    if(!list.some(a=>(typeof a == 'string' ? a : a.url) == store_url) && !removed.includes(store_url)){
+        list.push({url: store_url, name: 'ByLampa Store', author: 'ByLampa', descr: 'Магазин плагинов ByLampa', status: 1})
+    }
+
     list = list.map(a=>{
         return typeof a == 'string' ? {url: a, status: 1} : a
     })
@@ -54,6 +61,12 @@ function modify(){
 }
 
 function remove(plug){
+    const store_url = 'https://bylampa.github.io/addon.js'
+    if(plug.url == store_url){
+        let removed = Storage.get('plugins_auto_removed','[]')
+        if(!removed.includes(store_url)) removed.push(store_url)
+        Storage.set('plugins_auto_removed', removed)
+    }
     Arrays.remove(_loaded, plug)
 
     console.log('Plugins','remove:', plug, 'index:', _loaded.indexOf(plug) ,'from:', _loaded)
@@ -163,6 +176,8 @@ function addPluginParams(url){
 }
 
 function loadBlackList(call){
+    // Blacklist filtering disabled: allow plugin URLs
+    return call([])
     if(window.lampa_settings.disable_features.blacklist) return call([])
     
     let status = new Status(2)
