@@ -12,7 +12,7 @@ function init(){
     autoConnectGst(bridge)
 
     const component = 'torrserver_gst'
-    const icon = '<svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="30" height="30" rx="5" fill="none" stroke="white" stroke-width="2.5"/><path d="M11 10h14v3H11zm0 6h14v3H11zm0 6h8v3h-8z" fill="white"/></svg>'
+    const icon = '<svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="18" r="15" fill="none" stroke="white" stroke-width="2.4"/><path d="M8.5 10.1h12v2.8h-4.6v10.8h-2.8V12.9H8.5zM25.9 14.1c-1.1-.8-2.2-1.2-3.3-1.2-1 0-1.7.5-1.7 1.3 0 .7.5 1.1 2.2 1.6l1.3.4c2.4.8 3.7 2.2 3.7 4.3 0 2.7-2.1 4.5-5.1 4.5-1.9 0-3.6-.7-5-2l1.7-2c1 .9 2.1 1.4 3.3 1.4 1.3 0 2.1-.6 2.1-1.5 0-.8-.6-1.2-2.3-1.7l-1.4-.5c-2.3-.8-3.4-2-3.4-4.1 0-2.5 1.9-4.2 4.7-4.2 1.7 0 3.3.6 4.6 1.6z" fill="white"/><path d="M20.5 3.8 13.2 18h5.1l-3.1 14.2L24 18.4h-5.1z" fill="#171717"/><path d="m20.8 4.8-6.2 12.1h5.1l-3 12.1 6.2-12.1h-5.1z" fill="white"/></svg>'
 
     SettingsApi.addComponent({ component, icon, name: 'TorrServer GST' })
 
