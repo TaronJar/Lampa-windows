@@ -40,6 +40,12 @@ function get(){
 function modify(){
     let list = Storage.get('plugins','[]')
 
+    // Install the ByLampa plugin store by default
+    const bylampa_store = 'https://bylampa.github.io/addon.js'
+    if(!list.some(a=>(typeof a == 'string' ? a : a.url) == bylampa_store)){
+        list.push({url: bylampa_store, status: 1})
+    }
+
     list = list.map(a=>{
         return typeof a == 'string' ? {url: a, status: 1} : a
     })
