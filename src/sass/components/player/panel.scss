@@ -132,6 +132,24 @@
         }
     }
 
+    &__preview{
+        position: absolute;
+        bottom: calc(100% + 2.2em);
+        width: 20em;
+        max-width: 34vw;
+        transform: translateX(-50%);
+        border-radius: 0.4em;
+        overflow: hidden;
+        background: rgba(0,0,0,0.9);
+        box-shadow: 0 0.2em 1em rgba(0,0,0,0.45);
+        pointer-events: none;
+        z-index: 5;
+
+        img{ display: block; width: 100%; height: auto; }
+        span{ display: block; text-align: center; padding: 0.25em 0.5em; font-size: 0.9em; }
+    }
+
+
     &__time{
         position: absolute;
         bottom: 100%;
