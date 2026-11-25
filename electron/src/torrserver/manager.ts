@@ -71,16 +71,16 @@ export class GstManager {
             '--path', this.dataDirectory, '--logpath', this.logPath
         ], { cwd: this.installDirectory, windowsHide: true, stdio: 'ignore' });
         this.child = child;
-        let launchError: Error | null = null;
+        const launchState: { error: Error | null } = { error: null };
         child.once('error', err => {
-            launchError = err;
+            launchState.error = err;
             if (this.child === child) this.child = null;
         });
         child.once('exit', () => { if (this.child === child) this.child = null; });
 
         const deadline = Date.now() + START_TIMEOUT_MS;
         while (Date.now() < deadline) {
-            if (launchError) throw new Error(`Unable to launch TorrServer GST: ${launchError.message}`);
+            if (launchState.error) throw new Error(`Unable to launch TorrServer GST: ${launchState.error.message}`);
             if (child.exitCode !== null || child.signalCode !== null) {
                 if (this.child === child) this.child = null;
                 throw new Error('TorrServer GST exited before becoming ready.');
