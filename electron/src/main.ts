@@ -1,10 +1,27 @@
 import { app, BrowserWindow, ipcMain, type IpcMainInvokeEvent } from 'electron';
 import { join } from 'node:path';
+import { readFile, writeFile } from 'node:fs/promises';
 import { GstManager } from './torrserver/manager';
 
 let mainWindow: BrowserWindow | null = null;
 let gstManager: GstManager | null = null;
 let quittingAfterGstStop = false;
+let gstAutostart = true;
+const gstSettingsPath = () => join(app.getPath('userData'), 'torrserver-gst-settings.json');
+
+async function loadGstAutostart(): Promise<boolean> {
+    try {
+        const data = JSON.parse(await readFile(gstSettingsPath(), 'utf8'));
+        return data.autostart !== false;
+    } catch {
+        return true;
+    }
+}
+
+async function saveGstAutostart(value: boolean): Promise<void> {
+    gstAutostart = value;
+    await writeFile(gstSettingsPath(), JSON.stringify({ autostart: value }, null, 2), 'utf8');
+}
 
 function isTrustedSender(event: IpcMainInvokeEvent): boolean {
     const raw = event.senderFrame?.url || '';
@@ -34,6 +51,12 @@ function registerGstIpc(): void {
     });
     ipcMain.handle('torrserver-gst:start', (event) => requireTrustedSender(event).start());
     ipcMain.handle('torrserver-gst:stop', (event) => requireTrustedSender(event).stop());
+    ipcMain.handle('torrserver-gst:set-autostart', async (event, value: unknown) => {
+        requireTrustedSender(event);
+        if (typeof value !== 'boolean') throw new Error('Invalid GST autostart value.');
+        await saveGstAutostart(value);
+        return gstAutostart;
+    });
 }
 
 function createWindow(): void {
@@ -63,9 +86,21 @@ function createWindow(): void {
     mainWindow.on('closed', () => { mainWindow = null; });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
     gstManager = new GstManager(app.getPath('userData'));
     registerGstIpc();
+    gstAutostart = await loadGstAutostart();
+
+    // Launch managed GST before the Lampa renderer starts initializing.
+    if (gstAutostart && process.platform === 'win32' && process.arch === 'x64') {
+        try {
+            const status = await gstManager.status();
+            if (status.installed && !status.running) await gstManager.start();
+        } catch (error) {
+            console.error('[TorrServer GST] Startup failed:', error);
+        }
+    }
+
     createWindow();
 
     app.on('activate', () => {
