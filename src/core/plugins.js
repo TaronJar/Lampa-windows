@@ -239,25 +239,11 @@ function task(call){
             
             console.log('Plugins','load list:', puts)
 
-            black_list.push('lipp.xyz')
-            black_list.push('llpp.xyz')
-            black_list.push('scabrum.github.io')
-            black_list.push('bylampa.github.io')
-            black_list.push('tinyurl.com')
+            // Plugin blacklist fully removed. Do not filter URLs.
+            black_list = []
+            _blacklist = []
 
-            // Stupid people :(
-            black_list.push('t.me/')
-            black_list.push('4pda.')
-            black_list.push('teletype.in')
-            black_list.push('yotube.com')
-            
-            _blacklist = black_list
-
-            console.log('Plugins','black list:', black_list)
-
-            black_list.forEach(b=>{
-                puts = puts.filter(p=>p.toLowerCase().indexOf(b) == -1)
-            })
+            console.log('Plugins','black list disabled')
 
             console.log('Plugins','clear list:', puts)
 
