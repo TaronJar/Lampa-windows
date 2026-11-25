@@ -40,7 +40,7 @@ async function findLatestWindowsGstReleaseViaLatestRedirect(): Promise<GstReleas
     });
     if (!page.ok) throw new Error(`GitHub releases page failed (${page.status})`);
     const html = await page.text();
-    const assetPattern = /\\/YouROK\\/TorrServer\\/releases\\/download\\/([^\\/"'<>]+)\\/TorrServer-gst-windows-amd64\\.exe/g;
+    const assetPattern = /\/YouROK\/TorrServer\/releases\/download\/([^\/"'<>]+)\/TorrServer-gst-windows-amd64\.exe/g;
     const tags: string[] = [];
     for (const match of html.matchAll(assetPattern)) {
         const tag = decodeURIComponent(match[1]);
