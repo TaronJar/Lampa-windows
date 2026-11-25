@@ -12,6 +12,7 @@ export interface GstBridge {
 contextBridge.exposeInMainWorld('lampaFfmpegPreview', {
     status: () => ipcRenderer.invoke('lampa-ffmpeg:status'),
     install: () => ipcRenderer.invoke('lampa-ffmpeg:install'),
+    onProgress: (callback: (progress: any) => void) => { const listener = (_event: any, progress: any) => callback(progress); ipcRenderer.on('lampa-ffmpeg:progress', listener); return () => ipcRenderer.removeListener('lampa-ffmpeg:progress', listener); },
     frame: (url: string, seconds: number): Promise<string | null> => ipcRenderer.invoke('lampa-ffmpeg:preview', url, seconds)
 });
 
