@@ -416,3 +416,6 @@ exports.default = series(merge, plugins, sass_task, lang_task, sync_web, build_w
 exports.debug = series(enable_debug_mode, this.default)
 exports.doc = series(sync_doc, buildDoc)
 exports.write_manifest = series(write_manifest)
+
+// Production build used by the Electron Windows packaging workflow.
+exports.build_electron_web = series(merge, plugins, sass_task, lang_task, sync_web, build_web);
