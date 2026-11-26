@@ -80,7 +80,7 @@ function push(plug){
     let find = _created.find(a=>a == plug.url)
 
     if(!find && plug.status == 1){
-        if(_blacklist.find(a=>plug.url.indexOf(a) >= 0)) return Noty.show(Lang.translate('torrent_error_connect'),{time: 8000})
+        // Plugin blacklist bypassed for this fork.
 
         _created.push(plug.url)
 
