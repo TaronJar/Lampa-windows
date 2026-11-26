@@ -629,13 +629,12 @@ function start(data, need, inner){
                     })) : null
                 })
             } else {
-                const file = require('fs')
-                if (file.existsSync(path)) {
-                    const spawn = require('child_process').spawn
-                    spawn(path, [encodeURI(url)])
-                } else {
+                window.externalPlayerBridge.launch(path, [encodeURI(url)]).then(result => {
+                    if (!result.launched) Noty.show(Lang.translate('player_not_found') + ': ' + path)
+                }).catch(error => {
+                    console.error('External Player', error)
                     Noty.show(Lang.translate('player_not_found') + ': ' + path)
-                }
+                })
             }
             listener.send('external', data)
         })
