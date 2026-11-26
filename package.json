@@ -10,7 +10,8 @@
     "debug": "gulp debug",
     "test": "vitest",
     "doc": "gulp doc",
-    "build:windows": "gulp build_electron_web && npm run electron:compile && electron-builder --win nsis"
+    "build:windows": "node scripts/prepare-icon.mjs && gulp build_electron_web && npm run electron:compile && electron-builder --win nsis",
+    "prepare:icon": "node scripts/prepare-icon.mjs"
   },
   "author": "unk",
   "license": "ISC",
@@ -27,7 +28,8 @@
     "gulp-newer": "^1.4.0",
     "sass": "^1.43.4",
     "typescript": "^7.0.2",
-    "vitest": "^0.32.4"
+    "vitest": "^0.32.4",
+    "png-to-ico": "^2.0.0"
   },
   "dependencies": {
     "@babel/core": "^7.15.8",
@@ -64,7 +66,7 @@
       "package.json"
     ],
     "win": {
-      "icon": "icons/favicon.ico",
+      "icon": "icons/lampa.ico",
       "target": [
         {
           "target": "nsis",
@@ -80,8 +82,8 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "deleteAppDataOnUninstall": false,
-      "installerIcon": "icons/favicon.ico",
-      "uninstallerIcon": "icons/favicon.ico",
+      "installerIcon": "icons/lampa.ico",
+      "uninstallerIcon": "icons/lampa.ico",
       "shortcutName": "Lampa"
     }
   }
