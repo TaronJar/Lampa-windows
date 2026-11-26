@@ -93,9 +93,11 @@ function push(plug){
         Utils.putScriptAsync([requestUrl],false,(failedUrl)=>{
             console.error('[PluginInstallTrace] SCRIPT LOAD FAILED:', {
                 originalUrl: plug.url,
+                requestUrl: requestUrl,
                 failedUrl: (failedUrl || '').split('?')[0],
                 reason: 'script element onerror fired (load/network/CSP/parse-related failure)'
             })
+            console.trace('[PluginInstallTrace] Failure callback stack for:', plug.url)
 
             Noty.show(Lang.translate('plugins_check_fail'),{time: 8000})
         },()=>{
