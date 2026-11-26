@@ -1,12 +1,13 @@
 import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import { extname, join, resolve } from 'node:path';
+import { createServer, type Server, type IncomingMessage, type ServerResponse } from 'node:http';
 import { readFile, writeFile } from 'node:fs/promises';
 import { GstManager } from './torrserver/manager';
 
 let mainWindow: BrowserWindow | null = null;
 let gstManager: GstManager | null = null;
-let webServer: import('node:http').Server | null = null;
+let webServer: Server | null = null;
 let localWebOrigin = '';
 let quittingAfterGstStop = false;
 let gstAutostart = true;
@@ -101,7 +102,7 @@ async function startLocalWebServer(): Promise<string> {
         '.wasm': 'application/wasm', '.mp4': 'video/mp4', '.webm': 'video/webm'
     };
 
-    webServer = createServer(async (req, res) => {
+    const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
         try {
             const pathname = decodeURIComponent(new URL(req.url || '/', 'http://127.0.0.1').pathname);
             const requested = resolve(webRoot, '.' + pathname);
@@ -128,15 +129,16 @@ async function startLocalWebServer(): Promise<string> {
     });
 
     await new Promise<void>((resolveListen, reject) => {
-        webServer!.once('error', reject);
-        webServer!.listen(0, '127.0.0.1', () => {
-            webServer!.removeListener('error', reject);
+        server.once('error', reject);
+        server.listen(0, '127.0.0.1', () => {
+            server.removeListener('error', reject);
             resolveListen();
         });
     });
 
-    const address = webServer.address();
+    const address = server.address();
     if (!address || typeof address === 'string') throw new Error('Failed to start local Lampa server.');
+    webServer = server;
     localWebOrigin = 'http://127.0.0.1:' + address.port;
     console.log('[Local Web Server] Listening at', localWebOrigin);
     return localWebOrigin;
