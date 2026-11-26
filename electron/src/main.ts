@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import { join } from 'node:path';
 import { readFile, writeFile } from 'node:fs/promises';
 import { GstManager } from './torrserver/manager';
@@ -61,6 +62,31 @@ function registerGstIpc(): void {
     });
 }
 
+
+function setupAutoUpdates(): void {
+    if (!app.isPackaged || process.platform !== 'win32') return;
+    autoUpdater.autoDownload = false;
+    autoUpdater.autoInstallOnAppQuit = true;
+    autoUpdater.on('update-available', async (info) => {
+        const choice = await dialog.showMessageBox(mainWindow!, {
+            type: 'info', buttons: ['Download update', 'Later'], defaultId: 0, cancelId: 1,
+            title: 'Lampa update available',
+            message: 'A new Lampa version (' + info.version + ') is available. Download it now?'
+        });
+        if (choice.response === 0) autoUpdater.downloadUpdate();
+    });
+    autoUpdater.on('update-downloaded', async (info) => {
+        const choice = await dialog.showMessageBox(mainWindow!, {
+            type: 'info', buttons: ['Restart and install', 'Later'], defaultId: 0, cancelId: 1,
+            title: 'Lampa update ready',
+            message: 'Lampa ' + info.version + ' has been downloaded. Restart to install it?'
+        });
+        if (choice.response === 0) autoUpdater.quitAndInstall();
+    });
+    autoUpdater.on('error', (error) => console.error('[Auto Update]', error));
+    setTimeout(() => autoUpdater.checkForUpdates().catch(error => console.error('[Auto Update] Check failed:', error)), 15000);
+}
+
 function createWindow(): void {
     mainWindow = new BrowserWindow({
         width: 1280,
@@ -108,6 +134,7 @@ app.whenReady().then(async () => {
     }
 
     createWindow();
+    setupAutoUpdates();
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
