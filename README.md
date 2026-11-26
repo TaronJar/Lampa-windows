@@ -19,7 +19,7 @@ TorrServer GST интегрирован с Lampa и предназначен д�
 
 ## Скачать
 
-Установщик Windows доступен во вкладке **Releases** этого репозитория.
+Скачать установщик Windows можно на странице [**Releases**](https://github.com/TaronJar/Lampa-windows/releases).
 
 ## Лицензия
 
