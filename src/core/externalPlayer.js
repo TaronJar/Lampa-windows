@@ -245,6 +245,7 @@ function getMpvIpcPath() {
  */
 function requestMpvStatus(config) {
     return new Promise((resolve, reject) => {
+        return resolve(null)
         const net = require('net')
         const result = {}
         const pending = {1: 'time', 2: 'duration', 3: 'playlist_pos'}
@@ -583,7 +584,6 @@ function openPlayer(url, data, options = {}) {
         fullscreen = DEFAULT_PLAYER_CONFIG[type]?.fullscreen,
     } = options
 
-    const file = require('fs')
     const config = {type, port, password, fullscreen}
 
     if (type === PLAYER_TYPES.MPV) {
@@ -642,17 +642,7 @@ function openPlayer(url, data, options = {}) {
             currentPlayerProcess = null
         }
 
-        currentPlayerProcess.on('close', handleProcessClose)
-
-        currentPlayerProcess.on('error', (error) => {
-            console.error('Player', 'Ошибка процесса:', error)
-            if (currentPlayerProcess) {
-                currentPlayerProcess = null
-            }
-            handleProcessClose(null, 'error')
-        })
-
-        currentPlayerProcess.on('exit', handleProcessClose)
+        // Process lifecycle events are owned by Electron main process; renderer has no child-process handle.
 
     } else {
         Noty.show(Lang.translate('player_not_found') + ': ' + playerPath)
@@ -661,7 +651,7 @@ function openPlayer(url, data, options = {}) {
 
     setTimeout(() => {
         // без IPC прогресс у mpv не узнать
-        const canPoll = type !== PLAYER_TYPES.MPV || config.ipc
+        const canPoll = false // Без IPC bridge к MPV polling отключён
 
         if (data.timeline && currentPlayerProcess && canPoll) {
             startTimecodePolling(data.timeline.hash, data, config)
