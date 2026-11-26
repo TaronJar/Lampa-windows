@@ -40,12 +40,6 @@ function get(){
 function modify(){
     let list = Storage.get('plugins','[]')
 
-    // Seed default plugin links only once on a fresh install.
-    if(!Storage.get('plugins_defaults_initialized',false) && Storage.value('plugins') === ''){
-        list.push('https://bylampa.github.io/addon.js')
-        Storage.set('plugins_defaults_initialized',true)
-    }
-
     list = list.map(a=>{
         return typeof a == 'string' ? {url: a, status: 1} : a
     })
