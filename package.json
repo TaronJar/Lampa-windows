@@ -2,14 +2,15 @@
   "name": "lampa",
   "version": "0.0.1",
   "description": "Lampa",
-  "main": "index.js",
+  "main": "electron/dist/main.js",
   "scripts": {
     "electron:compile": "tsc -p electron/tsconfig.json",
     "electron:dev": "npm run electron:compile && electron electron/dist/main.js",
     "start": "gulp",
     "debug": "gulp debug",
     "test": "vitest",
-    "doc": "gulp doc"
+    "doc": "gulp doc",
+    "build:windows": "gulp build_electron_web && npm run electron:compile && electron-builder --win nsis"
   },
   "author": "unk",
   "license": "ISC",
@@ -50,5 +51,38 @@
     "subsrt": "^1.1.1",
     "vinyl-buffer": "^1.0.1",
     "vinyl-source-stream": "^2.0.0"
+  },
+  "build": {
+    "appId": "ru.lampa.windows",
+    "productName": "Lampa",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/dist/**/*",
+      "build/web/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "icons/favicon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "deleteAppDataOnUninstall": false,
+      "installerIcon": "icons/favicon.ico",
+      "uninstallerIcon": "icons/favicon.ico",
+      "shortcutName": "Lampa"
+    }
   }
 }
