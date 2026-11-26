@@ -17,3 +17,14 @@ contextBridge.exposeInMainWorld('torrserverGst', {
     stop: () => ipcRenderer.invoke('torrserver-gst:stop'),
     setAutostart: (enabled: boolean) => ipcRenderer.invoke('torrserver-gst:set-autostart', enabled)
 } satisfies GstBridge);
+
+
+export interface ExternalPlayerBridge {
+    exists(path: string): Promise<boolean>;
+    launch(path: string, args: string[]): Promise<{ launched: boolean; pid?: number }>;
+}
+
+contextBridge.exposeInMainWorld('externalPlayerBridge', {
+    exists: (path: string) => ipcRenderer.invoke('external-player:exists', path),
+    launch: (path: string, args: string[]) => ipcRenderer.invoke('external-player:launch', path, args)
+} satisfies ExternalPlayerBridge);
