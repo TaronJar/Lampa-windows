@@ -10,7 +10,7 @@
     "debug": "gulp debug",
     "test": "vitest",
     "doc": "gulp doc",
-    "build:windows": "node scripts/prepare-icon.mjs && gulp build_electron_web && npm run electron:compile && electron-builder --win nsis",
+    "build:windows": "node scripts/prepare-icon.mjs && gulp build_electron_web && npm run electron:compile && electron-builder --win nsis --publish never",
     "prepare:icon": "node scripts/prepare-icon.mjs"
   },
   "author": "unk",
