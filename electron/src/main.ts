@@ -29,7 +29,7 @@ function isTrustedSender(event: IpcMainInvokeEvent): boolean {
     try {
         const url = new URL(raw);
         return app.isPackaged
-            ? url.protocol === 'file:' && url.pathname.endsWith('/build/web/index.html')
+            ? url.origin === localWebOrigin
             : url.protocol === 'http:' && (url.origin === 'http://localhost:3000' || url.origin === 'http://127.0.0.1:3000');
     } catch {
         return false;
