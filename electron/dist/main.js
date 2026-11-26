@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
+const electron_updater_1 = require("electron-updater");
 const node_path_1 = require("node:path");
 const promises_1 = require("node:fs/promises");
 const manager_1 = require("./torrserver/manager");
@@ -26,7 +27,9 @@ function isTrustedSender(event) {
     const raw = event.senderFrame?.url || '';
     try {
         const url = new URL(raw);
-        return url.protocol === 'http:' && (url.origin === 'http://localhost:3000' || url.origin === 'http://127.0.0.1:3000');
+        return electron_1.app.isPackaged
+            ? url.protocol === 'file:' && url.pathname.endsWith('/build/web/index.html')
+            : url.protocol === 'http:' && (url.origin === 'http://localhost:3000' || url.origin === 'http://127.0.0.1:3000');
     }
     catch {
         return false;
@@ -59,6 +62,32 @@ function registerGstIpc() {
         return gstAutostart;
     });
 }
+function setupAutoUpdates() {
+    if (!electron_1.app.isPackaged || process.platform !== 'win32')
+        return;
+    electron_updater_1.autoUpdater.autoDownload = false;
+    electron_updater_1.autoUpdater.autoInstallOnAppQuit = true;
+    electron_updater_1.autoUpdater.on('update-available', async (info) => {
+        const choice = await electron_1.dialog.showMessageBox(mainWindow, {
+            type: 'info', buttons: ['Download update', 'Later'], defaultId: 0, cancelId: 1,
+            title: 'Lampa update available',
+            message: 'A new Lampa version (' + info.version + ') is available. Download it now?'
+        });
+        if (choice.response === 0)
+            electron_updater_1.autoUpdater.downloadUpdate();
+    });
+    electron_updater_1.autoUpdater.on('update-downloaded', async (info) => {
+        const choice = await electron_1.dialog.showMessageBox(mainWindow, {
+            type: 'info', buttons: ['Restart and install', 'Later'], defaultId: 0, cancelId: 1,
+            title: 'Lampa update ready',
+            message: 'Lampa ' + info.version + ' has been downloaded. Restart to install it?'
+        });
+        if (choice.response === 0)
+            electron_updater_1.autoUpdater.quitAndInstall();
+    });
+    electron_updater_1.autoUpdater.on('error', (error) => console.error('[Auto Update]', error));
+    setTimeout(() => electron_updater_1.autoUpdater.checkForUpdates().catch(error => console.error('[Auto Update] Check failed:', error)), 15000);
+}
 function createWindow() {
     mainWindow = new electron_1.BrowserWindow({
         width: 1280,
@@ -80,7 +109,12 @@ function createWindow() {
             mainWindow?.webContents.openDevTools({ mode: 'detach' });
         }
     });
-    mainWindow.loadURL('http://localhost:3000');
+    if (electron_1.app.isPackaged) {
+        mainWindow.loadFile((0, node_path_1.join)(electron_1.app.getAppPath(), 'build', 'web', 'index.html'));
+    }
+    else {
+        mainWindow.loadURL('http://localhost:3000');
+    }
     mainWindow.on('closed', () => { mainWindow = null; });
 }
 electron_1.app.whenReady().then(async () => {
@@ -99,6 +133,7 @@ electron_1.app.whenReady().then(async () => {
         }
     }
     createWindow();
+    setupAutoUpdates();
     electron_1.app.on('activate', () => {
         if (electron_1.BrowserWindow.getAllWindows().length === 0)
             createWindow();
