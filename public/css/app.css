@@ -16222,3 +16222,10 @@ body.glass--style.platform--android .player-chat__body {
   -webkit-backdrop-filter: blur(1em);
           backdrop-filter: blur(1em);
 }
+/* Electron window dragging */
+body.electron .head__body { -webkit-app-region: drag; }
+body.electron .head__body .head__logo-icon,
+body.electron .head__body .head__menu-icon,
+body.electron .head__body .head__actions,
+body.electron .head__body .head__markers,
+body.electron .head__body .head__time { -webkit-app-region: no-drag; }

@@ -35,13 +35,7 @@ function Main(){
      */
     this.update = ()=>{
         // Fallback registration ensures FFmpeg's menu folder is visible even if init fails.
-        if(!Api.getComponent('ffmpeg_manager')){
-            Api.addComponent({
-                component: 'ffmpeg_manager',
-                name: 'FFmpeg',
-                icon: '<svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="18" r="15" fill="none" stroke="white" stroke-width="2"/><path d="M20 5 11 19h7l-3 12 10-16h-7z" fill="white"/></svg>'
-            })
-        }
+        
         let components = Api.allComponents()
 
         for(let name in components){

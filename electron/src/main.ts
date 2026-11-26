@@ -1,12 +1,10 @@
 import { app, BrowserWindow, ipcMain, type IpcMainInvokeEvent } from 'electron';
 import { join } from 'node:path';
 import { readFile, writeFile } from 'node:fs/promises';
-import { FfmpegPreviewManager } from './ffmpeg/preview-manager';
 import { GstManager } from './torrserver/manager';
 
 let mainWindow: BrowserWindow | null = null;
 let gstManager: GstManager | null = null;
-let ffmpegPreviewManager: FfmpegPreviewManager | null = null;
 let quittingAfterGstStop = false;
 let gstAutostart = true;
 const gstSettingsPath = () => join(app.getPath('userData'), 'torrserver-gst-settings.json');
@@ -42,17 +40,6 @@ function requireTrustedSender(event: IpcMainInvokeEvent): GstManager {
 }
 
 function registerGstIpc(): void {
-    ipcMain.handle('lampa-ffmpeg:status', (event) => { if (!isTrustedSender(event)) throw new Error('Blocked IPC from untrusted renderer.'); if (!ffmpegPreviewManager) throw new Error('FFmpeg manager is not ready.'); return ffmpegPreviewManager.status(); });
-    ipcMain.handle('lampa-ffmpeg:install', (event) => { if (!isTrustedSender(event)) throw new Error('Blocked IPC from untrusted renderer.'); if (!ffmpegPreviewManager) throw new Error('FFmpeg manager is not ready.'); return ffmpegPreviewManager.install(progress => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('lampa-ffmpeg:progress', progress); }); });
-    ipcMain.handle('lampa-ffmpeg:preview', async (event, url: unknown, seconds: unknown) => {
-        if (!isTrustedSender(event)) throw new Error('Blocked IPC from untrusted renderer.');
-        if (!ffmpegPreviewManager) throw new Error('FFmpeg preview manager is not ready.');
-        const result = await ffmpegPreviewManager.preview(url, seconds);
-        if (!result.path) return null;
-        const { readFile } = await import('node:fs/promises');
-        const bytes = await readFile(result.path);
-        return 'data:image/jpeg;base64,' + bytes.toString('base64');
-    });
     ipcMain.handle('torrserver-gst:status', (event) => requireTrustedSender(event).status());
     ipcMain.handle('torrserver-gst:latest', (event) => requireTrustedSender(event).findLatest());
     ipcMain.handle('torrserver-gst:install', (event) => {
@@ -79,7 +66,7 @@ function createWindow(): void {
         minWidth: 900,
         minHeight: 600,
         autoHideMenuBar: true,
-        backgroundColor: '#111111',
+        backgroundColor: '#242424',
         webPreferences: {
             preload: join(__dirname, 'preload.js'),
             nodeIntegration: false,
@@ -101,7 +88,6 @@ function createWindow(): void {
 
 app.whenReady().then(async () => {
     gstManager = new GstManager(app.getPath('userData'));
-    ffmpegPreviewManager = new FfmpegPreviewManager(app.getPath('userData'));
     registerGstIpc();
     gstAutostart = await loadGstAutostart();
 
@@ -125,7 +111,6 @@ app.whenReady().then(async () => {
 app.on('before-quit', (event) => {
     if (quittingAfterGstStop || !gstManager) return;
     event.preventDefault();
-    ffmpegPreviewManager?.cancelAll();
     void gstManager.stop().finally(() => {
         quittingAfterGstStop = true;
         app.quit();

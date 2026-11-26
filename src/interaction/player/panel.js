@@ -173,27 +173,7 @@ function init(){
             const preview = Html.elem('timeline').find('.player-panel__preview')
             preview.css('left', (pct * 100) + '%')
             preview.find('span').text(Utils.secondsToTime(seconds))
-            if(source && Number.isFinite(duration) && duration > 0 && seconds >= 0 && window.lampaFfmpegPreview && seconds !== Math.floor(vid.currentTime)){
-                const key = source + '|' + seconds
-                if(key !== previewLastKey){
-                    previewLastKey = key
-                    preview.addClass('hide')
-                    clearTimeout(previewTimer)
-                    previewRequest++
-                    const requestId = previewRequest
-                    previewTimer = setTimeout(async ()=>{
-                        try{
-                            const image = await window.lampaFfmpegPreview.frame(source, seconds)
-                            if(requestId !== previewRequest || !image) return
-                            preview.find('img').attr('src', image)
-                            preview.removeClass('hide')
-                        }
-                        catch(error){
-                            if(requestId === previewRequest) preview.addClass('hide')
-                        }
-                    }, 450)
-                }
-            }
+            
         }
     }).on('mouseout',()=>{
         if(!Platform.screen('mobile')) {

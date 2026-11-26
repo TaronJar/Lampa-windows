@@ -112,7 +112,6 @@ import Emit from './utils/emit'
 import Router from './core/router'
 import Timer from './core/timer'
 import TorrserverGstManager from './interaction/torrserver_gst'
-import FfmpegManager from './interaction/ffmpeg_manager'
 
 import ServiceTorserver from './services/torrserver'
 import ServiceWatched from './services/watched'
@@ -920,8 +919,6 @@ if(!window.fitst_load){
 
     initClass()
     TorrserverGstManager.init()
-    FfmpegManager.init()
-    
     if(navigator.userAgent.toLowerCase().indexOf('lampa_client') > -1){
         function checkReady(){
             if(window.innerWidth > 0) loadApp()
