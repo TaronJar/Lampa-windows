@@ -53,6 +53,8 @@ function startPlugin() {
         // Экран закладок - шоты
 
         Lampa.ContentRows.add({
+            name: 'shots_bookmarks',
+            title: 'Shots',
             index: 1,
             screen: ['bookmarks'],
             call: (params, screen)=>{
