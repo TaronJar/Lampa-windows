@@ -27,7 +27,7 @@ function isTrustedSender(event: IpcMainInvokeEvent): boolean {
     const raw = event.senderFrame?.url || '';
     try {
         const url = new URL(raw);
-        return url.protocol === 'http:' && (url.origin === 'http://localhost:3000' || url.origin === 'http://127.0.0.1:3000');
+        return app.isPackaged\n            ? url.protocol === 'file:' && url.pathname.endsWith('/build/web/index.html')\n            : url.protocol === 'http:' && (url.origin === 'http://localhost:3000' || url.origin === 'http://127.0.0.1:3000');
     } catch {
         return false;
     }
@@ -82,7 +82,7 @@ function createWindow(): void {
         }
     });
 
-    mainWindow.loadURL('http://localhost:3000');
+    if (app.isPackaged) {\n        mainWindow.loadFile(join(app.getAppPath(), 'build', 'web', 'index.html'));\n    } else {\n        mainWindow.loadURL('http://localhost:3000');\n    }
     mainWindow.on('closed', () => { mainWindow = null; });
 }
 
