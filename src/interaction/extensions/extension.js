@@ -242,14 +242,20 @@ class Extension extends Item {
         let url = UtilsOther.fixMirrorLink(UtilsOther.rewriteIfHTTPS(this.data.url || this.data.link))
 
         this.network.timeout(5000)
+        console.log('[PluginAccessCheck] request URL:', url)
+
         this.network.native(url,(str)=>{
+            console.log('[PluginAccessCheck] response:', url, 'length:', (str || '').length, 'preview:', (str || '').slice(0,500))
+
             if(/Lampa\./.test(str)){
                 display('success',200,Lang.translate('extensions_worked'))
             }
             else{
+                console.warn('[PluginAccessCheck] response did not contain Lampa API:', url)
                 display('error',500,Lang.translate('extensions_no_plugin'))
             }
         },(a,e)=>{
+            console.error('[PluginAccessCheck] request failed:', url, 'decoded:', a, 'error:', e)
             display('error', a.decode_code || 404,Lang.translate('title_error'))
         },false,{
             dataType: 'text'
