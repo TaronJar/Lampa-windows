@@ -48,6 +48,11 @@ function modify(){
         a.url = (a.url + '').replace('cub.watch', Manifest.cub_domain).replace('bwa.to', 'bwa.ad')
     })
 
+    // Remove duplicate plugin URLs, keeping the first entry and its settings/status.
+    list = list.filter((plug, index, array)=>{
+        return array.findIndex(item=>item.url === plug.url) === index
+    })
+
     console.log('Plugins','modify:', list)
     
     Storage.set('plugins', list)
