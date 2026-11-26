@@ -146,7 +146,7 @@ app.on('before-quit', (event) => {
     event.preventDefault();
     void gstManager.stop().finally(() => {
         quittingAfterGstStop = true;
-        void stopLocalWebServer().finally(() => app.quit());
+        app.quit();
     });
 });
 
