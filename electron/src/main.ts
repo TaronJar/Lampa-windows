@@ -1,14 +1,11 @@
 import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from 'electron';
 import { autoUpdater } from 'electron-updater';
-import { extname, join, resolve } from 'node:path';
-import { createServer, type Server, type IncomingMessage, type ServerResponse } from 'node:http';
+import { join } from 'node:path';
 import { readFile, writeFile } from 'node:fs/promises';
 import { GstManager } from './torrserver/manager';
 
 let mainWindow: BrowserWindow | null = null;
 let gstManager: GstManager | null = null;
-let webServer: Server | null = null;
-let localWebOrigin = '';
 let quittingAfterGstStop = false;
 let gstAutostart = true;
 const gstSettingsPath = () => join(app.getPath('userData'), 'torrserver-gst-settings.json');
@@ -32,7 +29,7 @@ function isTrustedSender(event: IpcMainInvokeEvent): boolean {
     try {
         const url = new URL(raw);
         return app.isPackaged
-            ? url.origin === localWebOrigin
+            ? url.protocol === 'file:' && url.pathname.endsWith('/build/web/index.html')
             : url.protocol === 'http:' && (url.origin === 'http://localhost:3000' || url.origin === 'http://127.0.0.1:3000');
     } catch {
         return false;
@@ -90,67 +87,6 @@ function setupAutoUpdates(): void {
     setTimeout(() => autoUpdater.checkForUpdates().catch(error => console.error('[Auto Update] Check failed:', error)), 15000);
 }
 
-async function startLocalWebServer(): Promise<string> {
-    const webRoot = resolve(app.getAppPath(), 'build', 'web');
-    const mimeTypes: Record<string, string> = {
-        '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
-        '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
-        '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml',
-        '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-        '.gif': 'image/gif', '.webp': 'image/webp', '.ico': 'image/x-icon',
-        '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf',
-        '.wasm': 'application/wasm', '.mp4': 'video/mp4', '.webm': 'video/webm'
-    };
-
-    const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
-        try {
-            const pathname = decodeURIComponent(new URL(req.url || '/', 'http://127.0.0.1').pathname);
-            const requested = resolve(webRoot, '.' + pathname);
-            if (requested !== webRoot && !requested.startsWith(webRoot + '\\')) {
-                res.writeHead(403).end('Forbidden');
-                return;
-            }
-
-            const filePath = pathname.endsWith('/') ? resolve(requested, 'index.html') : requested;
-            try {
-                const data = await readFile(filePath);
-                res.writeHead(200, { 'Content-Type': mimeTypes[extname(filePath).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
-                res.end(data);
-            } catch {
-                if (!extname(pathname)) {
-                    const shell = await readFile(resolve(webRoot, 'index.html'));
-                    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
-                    res.end(shell);
-                } else res.writeHead(404).end('Not Found');
-            }
-        } catch {
-            res.writeHead(400).end('Bad Request');
-        }
-    });
-
-    await new Promise<void>((resolveListen, reject) => {
-        server.once('error', reject);
-        server.listen(0, '127.0.0.1', () => {
-            server.removeListener('error', reject);
-            resolveListen();
-        });
-    });
-
-    const address = server.address();
-    if (!address || typeof address === 'string') throw new Error('Failed to start local Lampa server.');
-    webServer = server;
-    localWebOrigin = 'http://127.0.0.1:' + address.port;
-    console.log('[Local Web Server] Listening at', localWebOrigin);
-    return localWebOrigin;
-}
-
-function stopLocalWebServer(): Promise<void> {
-    return new Promise((resolveStop) => {
-        if (!webServer) return resolveStop();
-        webServer.close(() => { webServer = null; resolveStop(); });
-    });
-}
-
 function createWindow(): void {
     mainWindow = new BrowserWindow({
         width: 1280,
@@ -175,7 +111,7 @@ function createWindow(): void {
     });
 
     if (app.isPackaged) {
-        mainWindow.loadURL(localWebOrigin + '/index.html');
+        mainWindow.loadFile(join(app.getAppPath(), 'build', 'web', 'index.html'));
     } else {
         mainWindow.loadURL('http://localhost:3000');
     }
@@ -197,7 +133,6 @@ app.whenReady().then(async () => {
         }
     }
 
-    if (app.isPackaged) await startLocalWebServer();
     createWindow();
     setupAutoUpdates();
 
