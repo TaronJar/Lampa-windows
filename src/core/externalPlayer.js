@@ -224,19 +224,8 @@ function getPlayerStatus(htmlOrJson, config) {
  * os, path и net недоступны. Тогда mpv запускается без опроса прогресса.
  */
 function getMpvIpcPath() {
-    try {
-        const os   = require('os')
-        const path = require('path')
-        const net  = require('net')
-
-        if (!os || !path || !net || typeof net.connect !== 'function') return null
-
-        if (os.platform() === 'win32') return '\\\\.\\pipe\\lampa-mpv'
-
-        return path.join(os.tmpdir(), 'lampa-mpv.sock')
-    } catch (e) {
-        return null
-    }
+    // MPV IPC не поддерживается renderer-bridge, поэтому отключаем опрос таймкода.
+    return null
 }
 
 /**
@@ -587,23 +576,20 @@ function openPlayer(url, data, options = {}) {
     const config = {type, port, password, fullscreen}
 
     if (type === PLAYER_TYPES.MPV) {
-        config.ipc = getMpvIpcPath()
+        config.ipc = null
         config.playlist = options.playlist
         config.mpvPlaylist = getMpvPlaylist(config, url)
     }
-  
-    // Объект timeline мог устареть: после закрытия внешнего плеера прогресс
-    // сохраняется в хранилище, но не в data.timeline уже открытого списка,
-    // и повторный запуск начинался бы с нуля. Перечитываем его.
+
+
     if (data.timeline && data.timeline.hash) {
         const fresh = Timeline.view(data.timeline.hash, data.timeline)
-
-        data.timeline.time     = Math.round(fresh.time || 0)
+        data.timeline.time = Math.round(fresh.time || 0)
         data.timeline.duration = Math.round(fresh.duration || 0)
-        data.timeline.percent  = fresh.percent || 0
+        data.timeline.percent = fresh.percent || 0
     }
 
-    // Сохраняем hash сразу, чтобы он был доступен при закрытии
+
     if (data.timeline) {
         currentHash = data.timeline.hash
         playerCallbacks[data.timeline.hash] = data.timeline.handler
@@ -611,52 +597,21 @@ function openPlayer(url, data, options = {}) {
 
     const playerPath = Storage.field('player_nw_path')
     const playerArgs = getPlayerArgs(config, url, data)
-
     console.log('Player', 'Путь:', playerPath)
     console.log('Player', 'Аргументы:', playerArgs)
 
-    if (playerPath && file.existsSync(playerPath)) {
-        const spawn = require('child_process').spawn
-
-        if (currentPlayerProcess) {
-            console.log('Player', 'Убиваем предыдущий процесс')
-            // у обёрток spawn в Electron-оболочках kill() может не быть
-            if (typeof currentPlayerProcess.kill === 'function') currentPlayerProcess.kill()
+    window.externalPlayerBridge.launch(playerPath, playerArgs).then(result => {
+        if (!result.launched) {
+            Noty.show(Lang.translate('player_not_found') + ': ' + playerPath)
             currentPlayerProcess = null
+            return
         }
-
-        currentPlayerProcess = spawn(playerPath, playerArgs)
-
-        const handleProcessClose = (code, signal) => {
-            console.log('Player', 'Процесс закрыт с кодом:', code, 'сигнал:', signal)
-
-            if (currentHash && playerCallbacks[currentHash]) {
-                saveTimecodeOnPlayerClose(currentHash)
-            } else {
-                // Если нет колбэка, просто очищаем состояние
-                stopTimecodePolling()
-                currentHash = null
-                currentPlayerConfig = null
-            }
-
-            currentPlayerProcess = null
-        }
-
-        // Process lifecycle events are owned by Electron main process; renderer has no child-process handle.
-
-    } else {
+        currentPlayerProcess = { pid: result.pid }
+    }).catch(error => {
+        console.error('Player', 'Ошибка запуска:', error)
         Noty.show(Lang.translate('player_not_found') + ': ' + playerPath)
-        return
-    }
-
-    setTimeout(() => {
-        // без IPC прогресс у mpv не узнать
-        const canPoll = false // Без IPC bridge к MPV polling отключён
-
-        if (data.timeline && currentPlayerProcess && canPoll) {
-            startTimecodePolling(data.timeline.hash, data, config)
-        }
-    }, 2000)
+        currentPlayerProcess = null
+    })
 }
 
 export default {
