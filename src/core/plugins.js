@@ -86,10 +86,22 @@ function push(plug){
 
         console.log('Plugins','push:', plug)
 
-        Utils.putScriptAsync([addPluginParams(plug.url)],false,()=>{
+        console.log('[PluginInstallTrace] add requested:', {url: plug.url, status: plug.status, name: plug.name || ''})
+
+        const requestUrl = addPluginParams(plug.url)
+
+        Utils.putScriptAsync([requestUrl],false,(failedUrl)=>{
+            console.error('[PluginInstallTrace] SCRIPT LOAD FAILED:', {
+                originalUrl: plug.url,
+                failedUrl: (failedUrl || '').split('?')[0],
+                reason: 'script element onerror fired (load/network/CSP/parse-related failure)'
+            })
+
             Noty.show(Lang.translate('plugins_check_fail'),{time: 8000})
         },()=>{
-            updatePluginDB(plug.url, addPluginParams(plug.url))
+            console.log('[PluginInstallTrace] SCRIPT LOAD SUCCEEDED:', plug.url)
+
+            updatePluginDB(plug.url, requestUrl)
 
             Noty.show(Lang.translate('plugins_add_success'))
         },false)
