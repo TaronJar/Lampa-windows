@@ -117,17 +117,20 @@ function createProgram(src, videoEl, playdata, callbacks){
     _hls.on(Hls.Events.ERROR, function(_, data){
         console.log('Player','hls error', data.reason, data.details, data.fatal)
 
-        if(data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR){
-            if(data.reason === "no EXTM3U delimiter"){
-                callbacks.load(src)
-            }
-            else{
-                callbacks.error('details ['+data.details+'] fatal ['+data.fatal+']', data.fatal)
-            }
+        // Recoverable HLS errors are handled internally. Do not expose debug
+        // details such as fragLoadError or bufferNudgeOnStall to viewers.
+        if(data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR && data.reason === "no EXTM3U delimiter"){
+            callbacks.load(src)
+            return
         }
-        else{
-            callbacks.error('details ['+data.details+'] fatal ['+data.fatal+']', data.fatal)
-        }
+
+        if(!data.fatal) return
+
+        let message = data.type === Hls.ErrorTypes.MEDIA_ERROR
+            ? Lang.translate('player_error_one')
+            : Lang.translate('player_error_two')
+
+        callbacks.error(message, true)
     })
 
     _hls.on(Hls.Events.MANIFEST_LOADED, function(){

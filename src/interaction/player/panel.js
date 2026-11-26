@@ -22,6 +22,7 @@ import listener from './panel/listener'
 import {languageName, codecName, channelLayout} from './track_info'
 
 let state
+let preview_source = ""
 let panel_visible = false
 let timeline_last = {
     position: 0,
@@ -156,10 +157,32 @@ function init(){
 
     Html.elem('rewind_touch').toggleClass('hide',!Platform.screen('mobile'))
 
+    let previewTimer
+    let previewRequest = 0
+    let previewLastKey = ''
+
     Html.elem('timeline').on('mousemove',(e)=>{
-        if(!Platform.screen('mobile')) listener.send('mouse_rewind',{method: 'move',time: Html.elem('time'), percent: percent(e)})
+        if(!Platform.screen('mobile')) {
+            listener.send('mouse_rewind',{method: 'move',time: Html.elem('time'), percent: percent(e)})
+            const vid = Video.video()
+            let source = preview_source || (vid && (vid.currentSrc || vid.src))
+            if(source && !/^https?:\/\//i.test(source)) source = Player.playdata() && Player.playdata().url
+            const duration = Number(vid && vid.duration)
+            const pct = Math.max(0, Math.min(1, percent(e)))
+            const seconds = Math.floor(duration * pct)
+            const preview = Html.elem('timeline').find('.player-panel__preview')
+            preview.css('left', (pct * 100) + '%')
+            preview.find('span').text(Utils.secondsToTime(seconds))
+            
+        }
     }).on('mouseout',()=>{
-        if(!Platform.screen('mobile')) Html.elem('time').addClass('hide')
+        if(!Platform.screen('mobile')) {
+            Html.elem('time').addClass('hide')
+            clearTimeout(previewTimer)
+            previewRequest++
+            previewLastKey = ''
+            Html.elem('timeline').find('.player-panel__preview').addClass('hide').find('img').attr('src','')
+        }
     }).on('click',(e)=>{
         if(DeviceInput.canClick(e.originalEvent) && !Platform.screen('mobile')) listener.send('mouse_rewind',{method: 'click',time: Html.elem('time'), percent: percent(e)})
     })
@@ -647,11 +670,13 @@ function destroy(){
  * Получить html
  * @returns {object}
  */
+function setPreviewSource(src){ preview_source = src || "" }
 function render(){
     return Html.render()
 }
 
 export default {
+    setPreviewSource,
     init,
     listener,
     render,

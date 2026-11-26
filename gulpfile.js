@@ -49,13 +49,13 @@ var docFolder = './build/doc/';
 
 var isDebugEnabled = false;
 
-function merge(done) {
+function merge() {
     let plugins = [babel({
         babelHelpers: 'bundled',
         presets: ['@babel/preset-env']
     }), commonjs(), nodeResolve(), worker()]
 
-    rollup({
+    return rollup({
         // Point to the entry file
         input: srcFolder+"app.js",
 
@@ -91,7 +91,6 @@ function merge(done) {
       // Where to send the output file
       .pipe(dest(dstFolder));
       
-    done();
 }
 
 function bubbleFile(name){
@@ -413,7 +412,7 @@ exports.pack_tizen   = series(sync_tizen, uglify_task, public_tizen, index_tizen
 exports.pack_github  = series(sync_github, uglify_task, public_github, write_manifest, index_github);
 exports.pack_plugins = series(plugins);
 exports.test         = series(test);
-exports.default = parallel(watch, browser_sync);
+exports.default = series(merge, plugins, sass_task, lang_task, sync_web, build_web, parallel(watch, browser_sync));
 exports.debug = series(enable_debug_mode, this.default)
 exports.doc = series(sync_doc, buildDoc)
 exports.write_manifest = series(write_manifest)

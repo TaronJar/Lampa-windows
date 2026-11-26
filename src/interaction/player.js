@@ -741,7 +741,9 @@ function play(data){
 
             console.log('Player','play url', data.url)
 
-            Video.url(Torserver.toPlayUrl(data.url))
+            let preview_url = Torserver.toPlayUrl(data.url)
+            Panel.setPreviewSource(preview_url)
+            Video.url(preview_url)
 
             toggle()
 
