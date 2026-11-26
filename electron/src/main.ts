@@ -1,6 +1,8 @@
 import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import { join } from 'node:path';
+import { existsSync } from 'node:fs';
+import { spawn } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { GstManager } from './torrserver/manager';
 
@@ -41,6 +43,26 @@ function requireTrustedSender(event: IpcMainInvokeEvent): GstManager {
     if (!gstManager) throw new Error('GST manager is not ready yet.');
     return gstManager;
 }
+
+function registerExternalPlayerIpc(): void {
+    const trusted = (event: IpcMainInvokeEvent) => isTrustedSender(event);
+    ipcMain.handle('external-player:exists', (event, path: unknown) => {
+        if (!trusted(event)) throw new Error('Blocked IPC from untrusted renderer.');
+        if (typeof path !== 'string' || !path.trim()) return false;
+        return existsSync(path);
+    });
+    ipcMain.handle('external-player:launch', (event, path: unknown, args: unknown) => {
+        if (!trusted(event)) throw new Error('Blocked IPC from untrusted renderer.');
+        if (typeof path !== 'string' || !path.trim() || !Array.isArray(args) || !args.every(a => typeof a === 'string'))
+            throw new Error('Invalid external player launch arguments.');
+        if (!existsSync(path)) return { launched: false };
+        const child = spawn(path, args, { detached: true, stdio: 'ignore', windowsHide: false });
+        child.on('error', error => console.error('[External Player]', error));
+        child.unref();
+        return { launched: true, pid: child.pid };
+    });
+}
+
 
 function registerGstIpc(): void {
     ipcMain.handle('torrserver-gst:status', (event) => requireTrustedSender(event).status());
@@ -121,6 +143,7 @@ function createWindow(): void {
 app.whenReady().then(async () => {
     gstManager = new GstManager(app.getPath('userData'));
     registerGstIpc();
+    registerExternalPlayerIpc();
     gstAutostart = await loadGstAutostart();
 
     // Launch managed GST before the Lampa renderer starts initializing.
