@@ -20,9 +20,3 @@ TorrServer GST интегрирован с Lampa и предназначен д�
 ## Скачать
 
 Установщик Windows доступен во вкладке **Releases** этого репозитория.
-
-## Технологии
-
-- [Lampa](https://github.com/otterrr/lampa)
-- [Electron](https://www.electronjs.org/)
-- [TorrServer GST](https://github.com/YouROK/TorrServer)
